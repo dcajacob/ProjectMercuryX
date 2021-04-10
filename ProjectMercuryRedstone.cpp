@@ -550,6 +550,77 @@ void ProjectMercury::clbkPreStep(double simt, double simdt, double mjd)
 
 void ProjectMercury::clbkPostStep(double simt, double simdt, double mjd)
 {
+	// DEBUG: Verbose logging of position and such, used to compare with http://aresinstitute.org/spacepdf/19740073128_1974073128.pdf (seems to be down, but use archive.org if wanted. Or contact me, as I hopefully have a copy)
+	OBJHANDLE logTargetRef = oapiGetVesselByName("LC-5");
+	OBJHANDLE logMyRef = GetHandle();
+	if (!GroundContact() && logTargetRef != NULL)
+	{
+		char posLogString[400];
+		double logMET, logRange, logAlt, logMach, logDynPres, logEarthSpeed, logEarthSpeedAcc, logX, logY, logZ, logVelAngFromZenith, logVelAngFromTarget;
+
+		logMET = simt - launchTime;
+
+		double myLong, myLat, myRad, padLong, padLat, padRad;
+		double logRefRad = oapiGetSize(GetSurfaceRef());
+		oapiGetEquPos(logMyRef, &myLong, &myLat, &myRad);
+		oapiGetEquPos(logTargetRef, &padLong, &padLat, &padRad);
+		logRange = oapiOrthodome(myLong, myLat, padLong, padLat) * logRefRad / 1e3;
+
+		logAlt = (myRad - logRefRad) / 1e3;
+
+		logMach = GetMachNumber();
+
+		logDynPres = GetDynPressure(); // returned as Pa in Orbiter, but is kg/m^2 in PDF. What? Factor 9.81, maybe? Or typo?
+
+		logEarthSpeed = GetGroundspeed();
+
+		logEarthSpeedAcc = 0.0; // no inbuilt Orbiter function, so derive in Python from speed / simdt
+
+		// Must rotate so that "the positive X coordinate is 100E of N; the positive Z coordinate is 190E of N. The positive Y coordinate is perpendicular upward from the XZ plane at the point of tangency".
+		VECTOR3 earthRocketPos, earthLCpos;
+		oapiGetRelativePos(logMyRef, GetSurfaceRef(), &earthRocketPos);
+		oapiGetRelativePos(logTargetRef, GetSurfaceRef(), &earthLCpos);
+		MATRIX3 refMat;
+		oapiGetPlanetObliquityMatrix(GetSurfaceRef(), &refMat);
+		earthRocketPos = tmul(refMat, earthRocketPos);
+		earthLCpos = tmul(refMat, earthLCpos);
+		double throwAway = earthRocketPos.y;
+		earthRocketPos.y = earthRocketPos.z;
+		earthRocketPos.z = throwAway;
+		throwAway = earthLCpos.y;
+		earthLCpos.y = earthLCpos.z;
+		earthLCpos.z = throwAway;
+		double refHeading = 100.0 * RAD;
+		VECTOR3 northPole = _V(0, 0, logRefRad);
+		VECTOR3 dueEast = unit(crossp(northPole, earthLCpos));
+		VECTOR3 dueNorth = unit(crossp(dueEast, earthLCpos));
+		VECTOR3 unitX = dueNorth * cos(PI - refHeading) + dueEast * sin(PI - refHeading);
+		VECTOR3 unitY = unit(earthLCpos);
+		VECTOR3 unitZ = dueNorth * cos(PI - refHeading - PI05) + dueEast * sin(PI - refHeading - PI05);
+		logX = dotp(earthRocketPos, unitX);
+		logY = dotp(earthRocketPos, unitY) - logRefRad;
+		logZ = dotp(earthRocketPos, unitZ);
+		
+		// Do the same again, but for velocity
+		VECTOR3 padRocketVel;
+		oapiGetRelativeVel(logMyRef, logTargetRef, &padRocketVel);
+		padRocketVel = tmul(refMat, padRocketVel);
+		throwAway = padRocketVel.y;
+		padRocketVel.y = padRocketVel.z;
+		padRocketVel.z = throwAway;
+		double vX = dotp(padRocketVel, unitX);
+		double vY = dotp(padRocketVel, unitY);
+		double vZ = dotp(padRocketVel, unitZ);
+		double vG = sqrt(vX * vX + vY * vY + vZ * vZ);
+		logVelAngFromZenith = acos((logX * vX + (logY + logRefRad) * vY + logZ * vZ) / (vG * sqrt(logX * logX + (logY + logRefRad) * (logY + logRefRad) + logZ * logZ)));
+		logVelAngFromTarget = asin(vZ / vG);
+		//sprintf(oapiDebugString(), "v: (%.0f %.0f %.0f), pl: %.2f\u00B0, Y: %.2f\u00B0, vG-v: %.4e", vX, vY, vZ, logVelAngFromZenith * DEG, logVelAngFromTarget * DEG, vG - logEarthSpeed);
+		if (isnan(logVelAngFromTarget)) logVelAngFromTarget = 0.0;
+		sprintf(posLogString, "%.2f , %.2f , %.2f , %.2f , %.2f , %.2f , %.2f , %.2f , %.2f , %.2f , %.2f , %.2f , %.2f", simt, logMET, logRange, logAlt, logMach, logDynPres, logEarthSpeed, logEarthSpeedAcc, logX, logY, logZ, logVelAngFromZenith, logVelAngFromTarget);
+		if (writeToFile) oapiWriteLine(verbosePositionLog, posLogString);
+	}
+	// END VERBOSELOG DEBUG DEBUG
+
 	if (VesselStatus == LAUNCH || VesselStatus == TOWERSEP)
 	{
 		if (!GroundContact())
@@ -1171,13 +1242,13 @@ bool ProjectMercury::clbkDrawHUD(int mode, const HUDPAINTSPEC* hps, oapi::Sketch
 		yIndex += 1;
 
 		// ==== Autopilot status ====
-		if (autoPilot && VesselStatus != REENTRYNODROGUE)
+		if (autoPilot && (VesselStatus == LAUNCH || VesselStatus == TOWERSEP))
 		{
 			sprintf(cbuf, "Autopilot: ON");
 			skp->Text(secondColumnHUDx * TextX0, yIndex * LineSpacing + TextY0, cbuf, strlen(cbuf));
 			yIndex += 1;
 		}
-		else if (!autoPilot && VesselStatus != REENTRYNODROGUE)
+		else if (!autoPilot && (VesselStatus == LAUNCH || VesselStatus == TOWERSEP))
 		{
 			sprintf(cbuf, "Autopilot: OFF");
 			skp->Text(secondColumnHUDx* TextX0, yIndex * LineSpacing + TextY0, cbuf, strlen(cbuf));
@@ -2275,6 +2346,7 @@ void ProjectMercury::SeparateRingsAndAdapters(VECTOR3 redstoneDirection)
 // --------------------------------------------------------------
 DLLCLBK VESSEL* ovcInit(OBJHANDLE hvessel, int flightmodel)
 {
+	if (writeToFile) verbosePositionLog = oapiOpenFile("MercuryRedstonePosLog.txt", FILE_OUT);
 	return new ProjectMercury(hvessel, flightmodel);
 }
 
@@ -2283,7 +2355,7 @@ DLLCLBK VESSEL* ovcInit(OBJHANDLE hvessel, int flightmodel)
 // --------------------------------------------------------------
 DLLCLBK void ovcExit(VESSEL* vessel)
 {
-	//oapiCloseFile(jetVaneLogFile, FILE_OUT);
+	if (writeToFile) oapiCloseFile(verbosePositionLog, FILE_OUT);
 
 	if (vessel) delete (ProjectMercury*)vessel;
 }

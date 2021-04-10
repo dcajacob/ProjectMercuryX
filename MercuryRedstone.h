@@ -25,7 +25,8 @@ typedef struct texture {
 // Some vessel parameters
 // ==============================================================
 
-//FILEHANDLE jetVaneLogFile;
+const bool writeToFile = false;
+FILEHANDLE verbosePositionLog;
 
 const VECTOR3 OFS_ADAPTRING1 = { -0.61, 0.35, 9.33 };
 const VECTOR3 OFS_ADAPTRING2 = { 0.0, -0.82, 9.33 };
@@ -369,7 +370,7 @@ public:
 	// OrbiterSound
 	int OrbiterSoundID;
 	void OrbiterSoundPlayTimeHackWav(int numeral);
-	enum orbitersoundsounds { OSLOWGTIMEHACK = 1, OSATLASLAUNCHCOUNT, OSGOFORSEVENORBITS, OSRETROCOUNT, OSSTANDBYSECO, OSTRAJGO, OSSTANDBYCUTOFF, OSLOWG10S, OS0, OS1, OS2, OS3, OS4, OS5, OS6, OS7, OS8, OS9, OSATTITUDE }; // start from 1, due to OrbiterSound rules
+	enum orbitersoundsounds { OSLOWGTIMEHACK = 1, OSATLASLAUNCHCOUNT, OSGOFORSEVENORBITS, OSRETROCOUNT, OSSTANDBYSECO, OSTRAJGO, OSSTANDBYCUTOFF, OSLOWG10S, OS0, OS1, OS2, OS3, OS4, OS5, OS6, OS7, OS8, OS9, OSATTITUDE, OSRETRO }; // start from 1, due to OrbiterSound rules
 	double OrbiterSoundStartTime = 0.0; // system time of when last sound was played
 	bool OrbiterSoundPlayTimeHack = false;
 	int OrbiterSoundTimeHackPlayIndex = 0; // in HH MM SS = 01 23 45. If 6, then we are finished with time hack.

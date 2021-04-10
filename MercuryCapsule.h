@@ -697,6 +697,15 @@ inline void ProjectMercury::FireRetroRocket(int rckNum)
 	{
 		separateRetroCoverAction[rckNum] = true;
 	}
+
+	if (RETRO_THRUST_LEVEL[rckNum] > 0.0)
+	{
+		PlayVesselWave(OrbiterSoundID, OSRETRO, LOOP, 180);
+	}
+	else
+	{
+		StopVesselWave(OrbiterSoundID, OSRETRO);
+	}
 }
 
 void ProjectMercury::CreateAbortThrusters(void)
@@ -2078,8 +2087,9 @@ inline void ProjectMercury::CapsuleGenericPostCreation(void)
 	RequestLoadVesselWave(OrbiterSoundID, OSTRAJGO, "RedstonePitch77TrajGo.wav", DEFAULT);
 	RequestLoadVesselWave(OrbiterSoundID, OSLOWG10S, "05GIn10Sec.wav", DEFAULT);
 	// Disable RSC, as I've mapped it such that it may give sound even though no thruster is firing
-	//SoundOptionOnOff(OrbiterSoundID, PLAYATTITUDETHRUST, false);
-	//RequestLoadVesselWave(OrbiterSoundID, OSATTITUDE, "..\\..\\Vessel\\attfire.wav", INTERNAL_ONLY); // and load the sound for manual playing
+	SoundOptionOnOff(OrbiterSoundID, PLAYATTITUDETHRUST, false);
+	RequestLoadVesselWave(OrbiterSoundID, OSATTITUDE, "..\\..\\Vessel\\attsustain.wav", INTERNAL_ONLY); // and load the sound for manual playing
+	RequestLoadVesselWave(OrbiterSoundID, OSRETRO, "..\\..\\Vessel\\retro.wav", INTERNAL_ONLY); // for retro rocket sound
 }
 
 // Control every attitude setting, from ASCS norm, to aux damp, to fly-by-wire, to rate command, to fully manual
@@ -2167,7 +2177,9 @@ inline void ProjectMercury::CapsuleAttitudeControl(double simt, double simdt)
 			else
 			{
 				// DEBUG, I've noticed that if jettison retropack while in timeAcc (e.g. 10x), ASCS stops functioning, failing to revert to reentry attitude, even after going back to 1x and flipping ASCS switch.
-				sprintf(oapiDebugString(), "%.2f ERROR WARNING! AutopilotStatus %i", simt, AutopilotStatus);
+				//sprintf(oapiDebugString(), "%.2f ERROR WARNING! AutopilotStatus %i", simt, AutopilotStatus);
+				// We can arrive here by e.g. being in turnaround when retropack gets separated by aerodynamic forces. What would then have happened in real life? (except for retropack blowing up) \
+				I don't know. I assume either a sensor detecting retro sep, setting to reentryatt (and subsequent 0.05g mode), or it not bothering, keeping on turning around.
 			}
 		}
 	}
@@ -2375,21 +2387,23 @@ inline void ProjectMercury::CapsuleAttitudeControl(double simt, double simdt)
 
 	// Control sound. Normally, OrbiterSound plays generic RCS sound when a thruster group is active. But with my implementation, a thruster group can be activated, without activating thrusters (e.g. when in ASCS, or when disabled thrusters).
 	// Therefore, here in the end, check if we eject fuel, and if we do, then play sound.
-	double finalThrustLevel =
+	double finalThrustLevelHigh =
 		GetThrusterLevel(thruster_auto_py[0]) + GetThrusterLevel(thruster_auto_py[1]) + GetThrusterLevel(thruster_auto_py[2]) + GetThrusterLevel(thruster_auto_py[3]) + GetThrusterLevel(thruster_auto_roll[0]) + GetThrusterLevel(thruster_auto_roll[1]) +
-		GetThrusterLevel(thruster_auto_py_1lb[0]) + GetThrusterLevel(thruster_auto_py_1lb[1]) + GetThrusterLevel(thruster_auto_py_1lb[2]) + GetThrusterLevel(thruster_auto_py_1lb[3]) + GetThrusterLevel(thruster_auto_roll_1lb[0]) + GetThrusterLevel(thruster_auto_roll_1lb[1]) +
 		GetThrusterLevel(thruster_man_py[0]) + GetThrusterLevel(thruster_man_py[1]) + GetThrusterLevel(thruster_man_py[2]) + GetThrusterLevel(thruster_man_py[3]) + GetThrusterLevel(thruster_man_roll[0]) + GetThrusterLevel(thruster_man_roll[1]);
-	if (finalThrustLevel == 0.0)
+	double finalThrustLevelLow = GetThrusterLevel(thruster_auto_py_1lb[0]) + GetThrusterLevel(thruster_auto_py_1lb[1]) + GetThrusterLevel(thruster_auto_py_1lb[2]) + GetThrusterLevel(thruster_auto_py_1lb[3]) + GetThrusterLevel(thruster_auto_roll_1lb[0]) + GetThrusterLevel(thruster_auto_roll_1lb[1]);
+	if (finalThrustLevelHigh + finalThrustLevelLow == 0.0)
 	{
-		//PlayVesselWave(OrbiterSoundID, OSATTITUDE);
+		StopVesselWave(OrbiterSoundID, OSATTITUDE);
 		//sprintf(oapiDebugString(), "Stopping RCS %.2f", simt);
-		SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
+		/*SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
 		SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
 		SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT, 0.0);
 		SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
 		SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
-		SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
+		SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);*/
 	}
+	else if (finalThrustLevelHigh == 0.0) PlayVesselWave(OrbiterSoundID, OSATTITUDE, LOOP, 130);
+	else PlayVesselWave(OrbiterSoundID, OSATTITUDE, LOOP, 160);
 
 }
 

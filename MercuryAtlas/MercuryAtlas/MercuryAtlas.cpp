@@ -2768,19 +2768,19 @@ bool ProjectMercury::SetTargetBaseIdx(char* rstr, bool launch)
 				manualInputRetroTime = timeHour * 3600 + timeMinute * 60 + timeSecond;
 				return true;
 			}
-			else // typed in only two numbers, and thus lat long coordinates
+			else // typed in only two numbers, and thus long lat coordinates (this was previously lat long, but I swapped 7th of April 2021 to long lat, so that it matches my Extended Map MFD addon)
 			{
 				oapiWriteLogV("You wrote two coordinates.");
 				char latText[20];
 				char longText[20];
-				strncpy(latText, rstr, strPos - rstr + 1); // maybe strPos - rstr + 1
-				oapiWriteLogV("Part one: %s", latText);
-				missionLandLat = atof(latText);
-				oapiWriteLogV("Lat: %.2f N", missionLandLat);
-				strncpy(longText, rstr + int(strPos - rstr + 1), strlen(rstr) - int(strPos - rstr + 1)); // maybe etc.
-				oapiWriteLogV("Part two: %s", longText);
+				strncpy(longText, rstr, strPos - rstr + 1); // maybe strPos - rstr + 1
+				oapiWriteLogV("Part one: %s", longText);
 				missionLandLong = atof(longText);
 				oapiWriteLogV("Long: %.2f E", missionLandLong);
+				strncpy(latText, rstr + int(strPos - rstr + 1), strlen(rstr) - int(strPos - rstr + 1)); // maybe etc.
+				oapiWriteLogV("Part two: %s", latText);
+				missionLandLat = atof(latText);
+				oapiWriteLogV("Lat: %.2f N", missionLandLat);
 				noMissionLandLat = false;
 				landingComputing = true;
 				launchTargetPosition = true;
