@@ -382,7 +382,7 @@ public:
 	// OrbiterSound
 	int OrbiterSoundID;
 	void OrbiterSoundPlayTimeHackWav(int numeral);
-	enum orbitersoundsounds { OSLOWGTIMEHACK = 1, OSATLASLAUNCHCOUNT, OSGOFORSEVENORBITS, OSRETROCOUNT, OSSTANDBYSECO, OSTRAJGO, OSSTANDBYCUTOFF, OSLOWG10S, OS0, OS1, OS2, OS3, OS4, OS5, OS6, OS7, OS8, OS9, OSATTITUDE }; // start from 1, due to OrbiterSound rules
+	enum orbitersoundsounds { OSLOWGTIMEHACK = 1, OSATLASLAUNCHCOUNT, OSGOFORSEVENORBITS, OSRETROCOUNT, OSSTANDBYSECO, OSTRAJGO, OSSTANDBYCUTOFF, OSLOWG10S, OS0, OS1, OS2, OS3, OS4, OS5, OS6, OS7, OS8, OS9, OSATTITUDE, OSRETRO}; // start from 1, due to OrbiterSound rules
 	double OrbiterSoundStartTime = 0.0; // system time of when last sound was played
 	bool OrbiterSoundPlayTimeHack = false;
 	int OrbiterSoundTimeHackPlayIndex = 0; // in HH MM SS = 01 23 45. If 6, then we are finished with time hack.
@@ -676,6 +676,7 @@ private:
 	//int physicalSwitchState[5] = { -2 }; // -1 left, 0 centre, 1 right. -2 is reset
 	int physicalSwitchFirstGroup = 17; // right now it's 17, but doesn't matter what we set to, as it will be correctly assigned every frame
 	double animateDialsPreviousSimt = 0.0; // even if we have scenario with simt < 0.0 (scnEditor), we will only have a smooth transition once every time jump backwards.
+	double referenceTankAirPressure = ATMP; // record air pressure, used to calculate the vertical speed dial. Assuming the Mercury capsule used a variometer (see https://en.wikipedia.org/wiki/Variometer )
 
 	// -1 left, 0 centre, 1 right. -2 is reset
 	int switchAutoRetroJet = -1; // ARM (-1), OFF (1)

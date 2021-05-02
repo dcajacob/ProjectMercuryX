@@ -234,6 +234,8 @@ public:
 	void AimEulerAngle(double pitch, double yaw);
 	void DisableAutopilot(bool turnOff);
 	void CreateAirfoilsLittleJoe(void);
+	double TimeFromPerigee(double period, double ecc, double TrA);
+	void GetEquPosInTime(double t, double SMa, double Ecc, double Inc, double Per, double LPe, double LAN, double M, double longAtNow, double* longitude, double* latitude);
 
 	void AuxDampingAuto(bool highThrust);
 	void RetroAttitudeAuto(double simt, double simdt, bool retroAtt);
@@ -367,6 +369,23 @@ public:
 	DWORD ScreenWidth, ScreenHeight, ScreenColour;
 	int TextX0, TextY0, LineSpacing;
 	int secondColumnHUDx = 28; // The x-pos of the second collumn on the HUD
+
+	// OrbiterSound
+	int OrbiterSoundID;
+	void OrbiterSoundPlayTimeHackWav(int numeral);
+	enum orbitersoundsounds { OSLOWGTIMEHACK = 1, OSATLASLAUNCHCOUNT, OSGOFORSEVENORBITS, OSRETROCOUNT, OSSTANDBYSECO, OSTRAJGO, OSSTANDBYCUTOFF, OSLOWG10S, OS0, OS1, OS2, OS3, OS4, OS5, OS6, OS7, OS8, OS9, OSATTITUDE, OSRETRO }; // start from 1, due to OrbiterSound rules
+	double OrbiterSoundStartTime = 0.0; // system time of when last sound was played
+	bool OrbiterSoundPlayTimeHack = false;
+	int OrbiterSoundTimeHackPlayIndex = 0; // in HH MM SS = 01 23 45. If 6, then we are finished with time hack.
+	int OrbiterSoundTimeHackToPlay[6] = { 0 }; // load in the digits to play in time hack.
+	bool OrbiterSoundLowGPlayed = false;
+	double OrbiterSoundGoForOrbitTime = 1e10; // simtime to play go for orbit if in radio contact. Will be 30 seconds stdDev 5 after SECO. 1e10 is infinity, or 317 years. I expect Orbiter to crash before such a huge timejump.
+	bool OrbiterSoundGoForOrbitPlayed = false;
+	bool OrbiterSoundRetroCountPlayed = false;
+	bool OrbiterSoundStandBySecoPlayed = false;
+	bool OrbiterSoundPitch77Played = false;
+	bool OrbiterSoundStandByCutoffPlayed = false;
+	bool OrbiterSoundLowG10secPlayed = false;
 
 private:
 	static void vlift(VESSEL* v, double aoa, double M, double Re, void* context, double* cl, double* cm, double* cd);
@@ -520,6 +539,7 @@ private:
 							   1 = Only flight data
 							   2 = Nothing (only stock HUD)*/
 	char contactBase[50];
+	bool radioContact = true;
 	bool leftMFDwasOn = false;
 	bool rightMFDwasOn = false;
 	bool MercuryNetwork = true;
@@ -582,6 +602,7 @@ private:
 	int physicalSwitchState[3] = { -2 }; // -1 left, 0 centre, 1 right. -2 is reset
 	int physicalSwitchFirstGroup = 17; // right now it's 17, but doesn't matter what we set to, as it will be correctly assigned every frame
 	double animateDialsPreviousSimt = 0.0; // even if we have scenario with simt < 0.0 (scnEditor), we will only have a smooth transition once every time jump backwards.
+	double referenceTankAirPressure = ATMP; // record air pressure, used to calculate the vertical speed dial. Assuming the Mercury capsule used a variometer (see https://en.wikipedia.org/wiki/Variometer )
 
 	// -1 left, 0 centre, 1 right. -2 is reset
 	int switchAutoRetroJet = -1; // ARM (-1), OFF (1)

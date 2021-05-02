@@ -711,19 +711,17 @@ inline void ProjectMercury::AnimateDials(void)
 	idx += 1;
 
 	// Descent
-	VECTOR3 groundSpeedVec;
-	GetAirspeedVector(FRAME_HORIZON, groundSpeedVec);
-	float descent = float(-groundSpeedVec.y / 3.048); // feet/s
-	if (GetAltitude() > 5e4) descent = 0.0f;
+	// Calculated from simulation of variometer (small reservoir leaking slowly to/from atmosphere, driving a needle telling the descent speed.
+	const double airTemp = 300.0;
+	double pressureDifference = (GetAtmPressure() - referenceTankAirPressure) * sqrt(ATMP / max(GetAtmPressure(), 0.01)); // sqrt atmp/p to get a rough scaling to compensate
+	float descent = pressureDifference * 2.95 / 108.0 * 2.94 / 1.62; // gives positive change for denser atmosphere, and thus positive rate if falling, which is correct with dial. 2.95 / 108.0 is calibration factor.
+	//sprintf(oapiDebugString(), "Pa: %.1f Pa, desc: %.2f, temp: %.2f", GetAtmPressure(), descent, GetAtmTemperature());
 	RotateArmGroup(armGroups[idx], descentPos[0], descentPos[1], 95.0f, 10.0f, ValueToAngle(descent, 0.0f, 15.0f, 180.0f, 0.0f), 0.85f);
 	idx += 1;
 
 	// Altitude
-	//float altitude = float(GetAltitude() / 304.8); // ft
 	// Altitude is calculated from static pressure. Mimic that, although I assume Orbiter currently doesn't model pressure difference due to weather/complex atmosphere.
-	double staticPressure = GetAtmPressure();
-	float altitude = -log(GetAtmPressure() / ATMP) * 8.314 * (273.15 + 15.0) / G / 0.028964 / 304.8f; // 0.02894 is the molar mass of Earth's atmosphere, https://en.wikipedia.org/wiki/Barometric_formula.
-	sprintf(oapiDebugString(), "%.2f, act. alt: %.0f, pres.alt %.0f", simt, GetAltitude(), altitude * 304.8);
+	float altitude = -log(max(GetAtmPressure(), 0.01) / ATMP) * 8.314 * max(GetAtmTemperature(), 100.0) / G / 0.028964 / 304.8f; // 0.02894 is the molar mass of Earth's atmosphere, https://en.wikipedia.org/wiki/Barometric_formula.
 	RotateArmGroup(armGroups[idx], altPos[0], altPos[1], 135.0f, 10.0f, ValueToAngle(altitude, 0.0f, 100.0f, 120.0f, 450.0f), 0.85f);
 	idx += 1;
 

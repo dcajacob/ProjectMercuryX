@@ -4,7 +4,7 @@
 
 #define STRICT
 #define ORBITER_MODULE
-#define VESSELVER VESSEL3
+#define VESSELVER VESSEL4
 
 #include "orbitersdk.h"
 //#include <algorithm>
@@ -45,9 +45,9 @@ const double TOWER_IN_DURATION = length(TOWER_MOVE_IN) / TOWER_SPEED;
 
 // Camera settings
 const int numCamera = 5; // lrgTwrDwn, lrgTwrFar, undrRckt, farAwy, farAwy2
-const VECTOR3 CAMERA_LARGE_TOWER_DOWN = _V(65.0, 12.0, -3.1) + MESH_OFFSET; // 0
+const VECTOR3 CAMERA_LARGE_TOWER_DOWN = _V(65.0 + 34.1, 12.0, -3.1) + MESH_OFFSET; // 0
 const VECTOR3 CAMERA_LARGE_TOWER_DOWN_DIR = _V(0, -1, 0);
-const VECTOR3 CAMERA_LARGE_TOWER_FAR = _V(60.0, 19.0, -3.1) + MESH_OFFSET; // 1
+const VECTOR3 CAMERA_LARGE_TOWER_FAR = _V(60.0 + 34.1, 19.0, -3.1) + MESH_OFFSET; // 1
 const VECTOR3 CAMERA_LARGE_TOWER_FAR_DIR = unit(_V(-1, -0.8, 0));
 const VECTOR3 CAMERA_UNDER_ROCKET = _V(0.0, ROCKET_POS.y - 8.0, 0.0); // 2
 const VECTOR3 CAMERA_UNDER_ROCKET_DIR = _V(0, 1, 0);
@@ -131,7 +131,7 @@ private:
 	enum towerstaus { CLOSE, MOVEAWAY, MOVECLOSE, AWAY } TowerInProcess;
 };
 
-#include "..\..\FunctionsForOrbiter2010.h"
+#include "..\..\FunctionsForOrbiter2016.h"
 
 
 // ==============================================================

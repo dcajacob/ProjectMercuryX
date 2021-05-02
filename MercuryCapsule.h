@@ -27,7 +27,7 @@ bool ProjectMercury::clbkLoadGenericCockpit(void)
 	rocketCam = false;
 	SetCameraDefaultDirection(_V(0, 0, 1));
 	//SetCameraOffset(_V(0.0, 0.0, 0.0));
-	SetCameraOffset(_V(0,0,0));
+	SetCameraOffset(_V(0, 0, 0));
 	oapiCameraSetCockpitDir(0, 0); // Rotate camera to desired direction
 	SetCameraRotationRange(0.8 * PI, 0.8 * PI, 0.4 * PI, 0.4 * PI); // SetCameraRotationRange-values are the default ones (page 524 in Orbitersdk\doc\API_Reference.pdf
 	oapiCameraSetAperture(oldFOV);
@@ -174,7 +174,7 @@ void ProjectMercury::AuxDampingAuto(bool highThrust) // return number of active 
 		SetThrusterLevel(thruster_auto_py_1lb[0], 0.0);
 		SetThrusterLevel(thruster_auto_py_1lb[1], 0.0);
 	}
-	
+
 	if (tHandleYawPushed)
 	{
 		if (angVel.y > rateLimit)
@@ -194,7 +194,7 @@ void ProjectMercury::AuxDampingAuto(bool highThrust) // return number of active 
 		SetThrusterLevel(thruster_auto_py_1lb[2], 0.0);
 		SetThrusterLevel(thruster_auto_py_1lb[3], 0.0);
 	}
-	
+
 	if (tHandleRollPushed)
 	{
 		if (angVel.z > rateLimit)
@@ -352,7 +352,7 @@ bool ProjectMercury::SetPitchAuto(double targetPitch, bool highTorque)
 			returnValue = true; // successfully attained desired attitude, and within rate limits
 		}
 	}
-	
+
 
 	if (!tHandlePitchPushed) // must be activated to function
 	{
@@ -361,7 +361,7 @@ bool ProjectMercury::SetPitchAuto(double targetPitch, bool highTorque)
 		SetThrusterLevel(thruster_auto_py_1lb[0], 0.0);
 		SetThrusterLevel(thruster_auto_py_1lb[1], 0.0);
 	}
-	
+
 	return returnValue; // default false
 }
 
@@ -466,7 +466,7 @@ bool ProjectMercury::SetYawAuto(bool highTorque)
 			returnValue = true; // success
 		}
 	}
-	
+
 
 	if (!tHandleYawPushed) // must be activated to function
 	{
@@ -698,9 +698,11 @@ inline void ProjectMercury::FireRetroRocket(int rckNum)
 		separateRetroCoverAction[rckNum] = true;
 	}
 
-	if (RETRO_THRUST_LEVEL[rckNum] > 0.0)
+	double retroLevel = RETRO_THRUST_LEVEL[0] + RETRO_THRUST_LEVEL[1] + RETRO_THRUST_LEVEL[2];
+	if (retroLevel > 0.0)
 	{
-		PlayVesselWave(OrbiterSoundID, OSRETRO, LOOP, 180);
+		int volume = int(180.0 * pow(retroLevel / 3.0, 1.0 / 5.0));
+		PlayVesselWave(OrbiterSoundID, OSRETRO, LOOP, volume);
 	}
 	else
 	{
@@ -1364,7 +1366,7 @@ void ProjectMercury::DeployDrogue(void)
 
 		CreateVariableDragElement(&drogueProgress, 2.365, MERCURY_OFS_DROGUE); // used (factor from main)/(main area)*(drogue area) for factor
 		SetRotDrag(MERCURY_ROT_DRAG_DROGUE);
-		
+
 		drogueDeployTime = oapiGetSimTime();
 
 		DisableAutopilot(true); // Stop rotating
@@ -1682,7 +1684,7 @@ inline void ProjectMercury::MercuryGenericConstructor(void)
 	UINT seed = UINT(timeSeed * handleSeed);
 	srand(seed);
 	oapiWriteLogV("Vessel random function seeds: time %i, handle %i, combined %i", timeSeed, handleSeed, seed);
-	
+
 
 	//panelDynamicTexture = NULL; // debug
 }
@@ -1708,7 +1710,7 @@ inline void ProjectMercury::WriteFlightParameters(void)
 
 		oapiWriteLogV(" > FULL FLIGHT NOT RECORDED");
 	}
-	
+
 	oapiWriteLogV(" > Cut-off altitude: %.0f m (%.0f ft)", historyCutOffAlt, historyCutOffAlt / 0.3048);
 	oapiWriteLogV(" > Cut-off space-fixed velocity: %.0f m/s (%.0f ft/s)", historyCutOffVel, historyCutOffVel / 0.3048);
 	oapiWriteLogV(" > Cut-off flight path angle: %.4f deg", historyCutOffAngl);
@@ -2017,31 +2019,31 @@ inline void ProjectMercury::CapsuleGenericPostCreation(void)
 	case ATTSTUCKOFF:
 		attitudeThrusterErrorNum = rand() % 18;
 		sprintf(errorMsg, "Failure generated with thruster no. %i not functioning after T+%i s", attitudeThrusterErrorNum, (int)timeOfError);
-		break; 
+		break;
 	case ATTMODEOFF:
 		sprintf(errorMsg, "Failure generated with automatic attitude not functioning");
-		break; 
+		break;
 	case RETROSTUCKOFF:
 		retroErrorNum = rand() % 3;
 		sprintf(errorMsg, "Failure generated with retrorocket no. %i not firing", retroErrorNum);
-		break; 
+		break;
 	case RETROSTUCKON: // HARDMODE
 		retroErrorNum = rand() % 3;
 		sprintf(errorMsg, "Failure generated with retrorocket no. %i going on at random at T+%i s", retroErrorNum, (int)timeOfError);
-		break; 
+		break;
 	case RETRONOSEP:
 		sprintf(errorMsg, "Failure generated with inability to separate retropack");
-		break; 
+		break;
 	case MAINCHUTETORN:
 		chuteDestroyFactor = sqrt(GenerateRandom01()); // sqrt, beacuse chute are depends on square. A 50 % destroy factor does not double fall speed. And that is boring.
 		sprintf(errorMsg, "Failure generated with main chute being %.1f %%%% broken", chuteDestroyFactor * 100.0); // aparrently, this sprintf is getting printf'd in oapiWriteLog, so %%%% generates %%, which generates % in Orbiter.log
-		break; 
+		break;
 	case NOLANDBAG:
 		sprintf(errorMsg, "Failure generated with failed landing bag deployment");
-		break; 
+		break;
 	case RETROCALCOFF:
 		sprintf(errorMsg, "Failure generated with error in retrosequence computing at T+%i s", (int)timeOfError);
-		break; 
+		break;
 	case BOOSTERDEVIATIONSPEED:
 		speedError = GenerateRandomNorm() * 30.0; // Feel free to play with this value (the standard deviation). The go-no-go plot gives roughly 45 m/s each way. With 30, that means failed orbit in 13 % of cases.
 		sprintf(errorMsg, "Failure generated with final launch speed deviation of %.1f m/s", speedError);
@@ -2049,7 +2051,7 @@ inline void ProjectMercury::CapsuleGenericPostCreation(void)
 	case BOOSTERPROBLEM:
 		timeOfError = GenerateRandom01() * 400.0; // On Redstone, this is probability 35 % of happening, while for Atlas is 75 %. OK, because Redstone is simpler=safer than Atlas
 		sprintf(errorMsg, "Failure generated during launch at T+%i s", (int)timeOfError);
-		break; 
+		break;
 	case ATTITUDEOFFSET:
 		// Pick a1 and a2 that seem funny or realistic
 		double a1 = 0.3;
@@ -2057,7 +2059,7 @@ inline void ProjectMercury::CapsuleGenericPostCreation(void)
 		pitchOffset = GenerateRandomAngleNorm(a1, a2);
 		yawOffset = GenerateRandomAngleNorm(a1, a2);
 		rollOffset = GenerateRandomAngleNorm(a1, a2);
-		
+
 		sprintf(errorMsg, "Failure generated in capsule attitude with offsets P: %.1f deg, Y: %.1f, R: %.1f", pitchOffset * DEG, yawOffset * DEG, rollOffset * DEG);
 		break;
 	}
@@ -2183,9 +2185,9 @@ inline void ProjectMercury::CapsuleAttitudeControl(double simt, double simdt)
 			}
 		}
 	}
-	
+
 	// ASCS .05G mode, debug, check MA-9 transcript and logic for low g mode. Potentially move this to ASCS autopilot directly above
-	if (switchASCSMode == -1 && FailureMode == LOWGACTIVATE && simt - launchTime > timeOfError && oapiGetTimeAcceleration() <= 1.0)
+	if (switchASCSMode == -1 && FailureMode == LOWGACTIVATE && simt - launchTime > timeOfError&& oapiGetTimeAcceleration() <= 1.0)
 	{
 		DisableAutopilot(false); // disable stuck thrusters
 		AutopilotStatus = LOWG;
@@ -2341,7 +2343,7 @@ inline void ProjectMercury::CapsuleAttitudeControl(double simt, double simdt)
 	}
 
 	// Hardmode spontanious attitude thruster firing
-	if (FailureMode == ATTSTUCKON && simt - launchTime > timeOfError && oapiGetTimeAcceleration() <= 1.0) // we are not THAT mean that we do this during time acc
+	if (FailureMode == ATTSTUCKON && simt - launchTime > timeOfError&& oapiGetTimeAcceleration() <= 1.0) // we are not THAT mean that we do this during time acc
 	{
 		THRUSTER_HANDLE thFail;
 		if (attitudeThrusterErrorNum < 4)
@@ -2463,7 +2465,7 @@ inline void ProjectMercury::MercuryCapsuleGenericTimestep(double simt, double si
 	if (longitudinalAcc < minVesselAcceleration) minVesselAcceleration = longitudinalAcc;
 
 	// Retrosequence
-	if (engageRetro && simt > retroStartTime && VesselStatus == FLIGHT) // firing starts 30 sec after retrosequence start
+	if (engageRetro && simt > retroStartTime&& VesselStatus == FLIGHT) // firing starts 30 sec after retrosequence start
 	{
 		FireRetroRocket(0);
 
@@ -2485,12 +2487,12 @@ inline void ProjectMercury::MercuryCapsuleGenericTimestep(double simt, double si
 	}
 
 	// Hardmode sponatious retro firing
-	if (FailureMode == RETROSTUCKON && simt - launchTime > timeOfError && oapiGetTimeAcceleration() <= 1.0) // we are not THAT mean that we do this during time acc
+	if (FailureMode == RETROSTUCKON && simt - launchTime > timeOfError&& oapiGetTimeAcceleration() <= 1.0) // we are not THAT mean that we do this during time acc
 	{
 		SetThrusterLevel(thruster_retro[retroErrorNum], 1.0);
-		
+
 		RETRO_THRUST_LEVEL[retroErrorNum] = GetThrusterLevel(thruster_retro[retroErrorNum]); // For local lights
-		
+
 		if (!retroCoverSeparated[retroErrorNum] && RETRO_THRUST_LEVEL[retroErrorNum] > 0.0)
 		{
 			separateRetroCoverAction[retroErrorNum] = true;
@@ -2952,7 +2954,7 @@ inline void ProjectMercury::WriteHUDIndicators(oapi::Sketchpad* skp, double simt
 	*yIndexUpdate = yIndex;
 }
 
-inline void ProjectMercury::LoadCapsule(const char *cbuf)
+inline void ProjectMercury::LoadCapsule(const char* cbuf)
 {
 	if (isalpha(cbuf[0])) // User specified capsule from config, e.g. "Demo"
 	{
@@ -3077,13 +3079,13 @@ inline void ProjectMercury::ReadCapsuleTextureReplacement(const char* cbuf)
 
 	if (strcmp(flag, "PORTHOLE") == 0)
 	{
-		if (ReadTextureString(cbuf, flagIdx,  texPorthole.file, &texPorthole.w, &texPorthole.h))
+		if (ReadTextureString(cbuf, flagIdx, texPorthole.file, &texPorthole.w, &texPorthole.h))
 			oapiWriteLogV("New Porthole texture: >%s<, w: %i, h: %i", texPorthole.file, texPorthole.w, texPorthole.h);
 		else oapiWriteLog("Failed to load Porthole texture");
 	}
 	else if (strcmp(flag, "BRAILMAP") == 0)
 	{
-		if (ReadTextureString(cbuf, flagIdx,  texBrailmap.file, &texBrailmap.w, &texBrailmap.h))
+		if (ReadTextureString(cbuf, flagIdx, texBrailmap.file, &texBrailmap.w, &texBrailmap.h))
 			oapiWriteLogV("New BRailmap texture: >%s<, w: %i, h: %i", texBrailmap.file, texBrailmap.w, texBrailmap.h);
 		else oapiWriteLog("Failed to load BRailmap texture");
 	}
@@ -3767,7 +3769,7 @@ void ProjectMercury::DefineDrogueAnimation(void)
 		_V(0.001, 0.001, 0.001)
 	);
 
-	static MGROUP_SCALE DrogueDeploy (
+	static MGROUP_SCALE DrogueDeploy(
 		Drogue,
 		drogueDeployGroups, 19,
 		_V(0.0, 0.0, 0.0),
@@ -3788,13 +3790,13 @@ inline void ProjectMercury::DefineMainChuteAnimation(void)
 		_V(0.0, 0.0, 0.0),
 		_V(0.01, 0.01, 0.01)
 	);
-	static MGROUP_SCALE MainChuteDeploy (
+	static MGROUP_SCALE MainChuteDeploy(
 		Mainchute,
 		mainChuteDeployGroups, 2,
 		_V(0.0, 0.0, 0.0),
 		_V(12.0, 12.0, 100.0)
 	);
-	static MGROUP_SCALE MainChuteDeployUnreef (
+	static MGROUP_SCALE MainChuteDeployUnreef(
 		Mainchute,
 		mainChuteDeployGroups, 2,
 		_V(0.0, 0.0, 0.0),
@@ -3809,7 +3811,7 @@ inline void ProjectMercury::DefineMainChuteAnimation(void)
 
 inline void ProjectMercury::DefineLandingBagAnimation(void)
 {
-	static UINT landingBagDeployGroups[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+	static UINT landingBagDeployGroups[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
 
 	static MGROUP_SCALE LandingBagZero(
 		Landingbag,
