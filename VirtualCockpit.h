@@ -712,10 +712,11 @@ inline void ProjectMercury::AnimateDials(void)
 
 	// Descent
 	// Calculated from simulation of variometer (small reservoir leaking slowly to/from atmosphere, driving a needle telling the descent speed.
-	const double airTemp = 300.0;
+	//const double airTemp = 300.0;
 	double pressureDifference = (GetAtmPressure() - referenceTankAirPressure) * sqrt(ATMP / max(GetAtmPressure(), 0.01)); // sqrt atmp/p to get a rough scaling to compensate
 	float descent = pressureDifference * 2.95 / 108.0 * 2.94 / 1.62; // gives positive change for denser atmosphere, and thus positive rate if falling, which is correct with dial. 2.95 / 108.0 is calibration factor.
-	//sprintf(oapiDebugString(), "Pa: %.1f Pa, desc: %.2f, temp: %.2f", GetAtmPressure(), descent, GetAtmTemperature());
+	VECTOR3 vel; GetGroundspeedVector(FRAME_HORIZON, vel);
+	sprintf(oapiDebugString(), "Pa: %.1f Pa, desc: %.2f, temp: %.2f", GetAtmPressure(), descent, vel.y / 3.048);
 	RotateArmGroup(armGroups[idx], descentPos[0], descentPos[1], 95.0f, 10.0f, ValueToAngle(descent, 0.0f, 15.0f, 180.0f, 0.0f), 0.85f);
 	idx += 1;
 

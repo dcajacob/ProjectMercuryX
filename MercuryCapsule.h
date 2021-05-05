@@ -1210,6 +1210,8 @@ void ProjectMercury::SeparateRetroPack(bool deleteThrusters) // only false if no
 	DelPropellantResource(retro_propellant[1]);
 	DelPropellantResource(retro_propellant[2]);
 	engageRetro = false;
+
+	StopVesselWave(OrbiterSoundID, OSRETRO); // if you separate retropack while burning it (which is kind of illegal, but anyway), we must stop the sound manually.
 }
 
 void ProjectMercury::SeparateRetroCoverN(int i) // int 1, 2, 3
@@ -2441,6 +2443,7 @@ inline void ProjectMercury::MercuryCapsuleGenericTimestep(double simt, double si
 	if (planetRef == NULL) planetRef = GetSurfaceRef();
 	radioContact = InRadioContact(planetRef);
 
+	referenceTankAirPressure += (GetAtmPressure() - referenceTankAirPressure) * simdt * 1.6; // 300 K is capsule temperature, which air that enters the variometer also has (I assume).
 	// If we're in panel mode with 2D panel, then animate. Note that oapiCameraInternal only gives true if in focus object, so first condition is not necessary, but better safe than sorry, especially considering potential later Orbiter verion changing it.
 	if (oapiGetFocusObject() == GetHandle() && oapiCameraInternal() && oapiCockpitMode() == COCKPIT_PANELS && panelView)
 	{
