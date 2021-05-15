@@ -668,7 +668,7 @@ inline void ProjectMercury::AnimateDials(void)
 	bool includeLatency = true;
 	double simt = oapiGetSimTime();
 
-	if (simt - animateDialsPreviousSimt > 1.0) includeLatency = false; // a relatively long time since last animation step, so force no latency to show current value. This is to omit the clock jumping around for every small periscope/F8-switch.
+	if (simt > animateDialsPreviousSimt + 1.0) includeLatency = false; // a relatively long time since last animation step, so force no latency to show current value. This is to omit the clock jumping around for every small periscope/F8-switch.
 
 	int idx = 0;
 
@@ -713,16 +713,19 @@ inline void ProjectMercury::AnimateDials(void)
 	// Descent
 	// Calculated from simulation of variometer (small reservoir leaking slowly to/from atmosphere, driving a needle telling the descent speed.
 	//const double airTemp = 300.0;
-	double pressureDifference = (GetAtmPressure() - referenceTankAirPressure) * sqrt(ATMP / max(GetAtmPressure(), 0.01)); // sqrt atmp/p to get a rough scaling to compensate
+	double atmPressure = GetAtmPressure();
+	double pressureDifference = (atmPressure - referenceTankAirPressure) * sqrt(ATMP / max(atmPressure, 0.01)); // sqrt atmp/p to get a rough scaling to compensate
 	float descent = pressureDifference * 2.95 / 108.0 * 2.94 / 1.62; // gives positive change for denser atmosphere, and thus positive rate if falling, which is correct with dial. 2.95 / 108.0 is calibration factor.
-	VECTOR3 vel; GetGroundspeedVector(FRAME_HORIZON, vel);
-	sprintf(oapiDebugString(), "Pa: %.1f Pa, desc: %.2f, temp: %.2f", GetAtmPressure(), descent, vel.y / 3.048);
+	if (atmPressure < 1.0) descent = 0.0; // force to zero if pressure is super low, as the variometer freaks out at high time acc, which you are only doing outside of the atmosphere anyway.
+	sprintf(oapiDebugString(), "descent: %.2f", descent);
+	//VECTOR3 vel; GetGroundspeedVector(FRAME_HORIZON, vel);
+	//sprintf(oapiDebugString(), "Pa: %.1f Pa, desc: %.2f, temp: %.2f", GetAtmPressure(), descent, vel.y / 3.048);
 	RotateArmGroup(armGroups[idx], descentPos[0], descentPos[1], 95.0f, 10.0f, ValueToAngle(descent, 0.0f, 15.0f, 180.0f, 0.0f), 0.85f);
 	idx += 1;
 
 	// Altitude
 	// Altitude is calculated from static pressure. Mimic that, although I assume Orbiter currently doesn't model pressure difference due to weather/complex atmosphere.
-	float altitude = -log(max(GetAtmPressure(), 0.01) / ATMP) * 8.314 * max(GetAtmTemperature(), 100.0) / G / 0.028964 / 304.8f; // 0.02894 is the molar mass of Earth's atmosphere, https://en.wikipedia.org/wiki/Barometric_formula.
+	float altitude = -log(max(atmPressure, 0.01) / ATMP) * 8.314 * max(GetAtmTemperature(), 100.0) / G / 0.028964 / 304.8f; // 0.02894 is the molar mass of Earth's atmosphere, https://en.wikipedia.org/wiki/Barometric_formula.
 	RotateArmGroup(armGroups[idx], altPos[0], altPos[1], 135.0f, 10.0f, ValueToAngle(altitude, 0.0f, 100.0f, 120.0f, 450.0f), 0.85f);
 	idx += 1;
 
@@ -892,10 +895,11 @@ inline void ProjectMercury::RotateArmGroup(int groupNum, float x0, float y0, flo
 	// Include latency in dial
 	if (includeLatency)
 	{
-		float simdt = (float)oapiGetSimStep();
+		float simdt = (float)oapiGetSimStep(); 
+
 		if (abs(normangle(angleR - previousDialAngle[groupNum])) > simdt * dialAngularSpeed)
 		{
-			float signDirection = (angleR - previousDialAngle[groupNum]) / abs(angleR - previousDialAngle[groupNum]);
+			float signDirection = normangle(angleR - previousDialAngle[groupNum]) / abs(normangle(angleR - previousDialAngle[groupNum])); // the normangle fixes a bug where the second dial would go counterclockwise when starting a new minute. Thanks to "Cougar" for reporting: https://www.orbiter-forum.com/threads/project-mercury-x-for-orbiter-2016.37745/page-7#post-581736 . I'm not totally sure if this normangle will introduce new problems, but should only be the case where the "failure" is more than |180| degrees, which is a bad case anyway.
 			angleR = previousDialAngle[groupNum] + simdt * dialAngularSpeed * signDirection;
 		}
 	}
@@ -1212,11 +1216,6 @@ inline void ProjectMercury::ChangeIndicatorStatus(void)
 	// FUEL QUAN
 	double autoLevel = GetPropellantMass(fuel_auto) / MERCURY_FUEL_MASS_AUTO;
 	double manualLevel = GetPropellantMass(fuel_manual) / MERCURY_FUEL_MASS_MAN;
-	//if (!attitudeFuelAuto) // swap (just how I've defined it)
-	//{
-	//	autoLevel = GetPropellantMass(fuel_manual) / MERCURY_FUEL_MASS_AUTO;
-	//	manualLevel = GetPropellantMass(fuel_auto) / MERCURY_FUEL_MASS_MAN;
-	//}
 	// Old addon had limit 0.25. Familiarization manual says "The pressure swich is set to actuate at a pre-determined low fuel level".
 	// However, on MA-7 Carpenter said at 01 34 37: "Fuel is 62 and 68 %, ..., fuel quantity light is on".
 	// MA-6  flightOps manual notes under fuel dial: "65 % - minimum auto control fuel for retrograde and reentry". This is in agreeing with MA-7 communications.

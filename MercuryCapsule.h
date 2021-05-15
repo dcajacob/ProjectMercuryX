@@ -701,7 +701,7 @@ inline void ProjectMercury::FireRetroRocket(int rckNum)
 	double retroLevel = RETRO_THRUST_LEVEL[0] + RETRO_THRUST_LEVEL[1] + RETRO_THRUST_LEVEL[2];
 	if (retroLevel > 0.0)
 	{
-		int volume = int(180.0 * pow(retroLevel / 3.0, 1.0 / 5.0));
+		int volume = int(200.0 * pow(retroLevel / 3.0, 1.0 / 5.0));
 		PlayVesselWave(OrbiterSoundID, OSRETRO, LOOP, volume);
 	}
 	else
@@ -2090,6 +2090,8 @@ inline void ProjectMercury::CapsuleGenericPostCreation(void)
 	RequestLoadVesselWave(OrbiterSoundID, OSSTANDBYCUTOFF, "RedstoneStandByForCutoff.wav", DEFAULT);
 	RequestLoadVesselWave(OrbiterSoundID, OSTRAJGO, "RedstonePitch77TrajGo.wav", DEFAULT);
 	RequestLoadVesselWave(OrbiterSoundID, OSLOWG10S, "05GIn10Sec.wav", DEFAULT);
+	RequestLoadVesselWave(OrbiterSoundID, OSAPOGEE, "ApogeeAltitude.wav", DEFAULT);
+	RequestLoadVesselWave(OrbiterSoundID, OSPERIGEE, "PerigeeAltitude.wav", DEFAULT);
 	// Disable RSC, as I've mapped it such that it may give sound even though no thruster is firing
 	SoundOptionOnOff(OrbiterSoundID, PLAYATTITUDETHRUST, false);
 	RequestLoadVesselWave(OrbiterSoundID, OSATTITUDE, "..\\..\\Vessel\\attsustain.wav", INTERNAL_ONLY); // and load the sound for manual playing
@@ -2714,7 +2716,7 @@ inline void ProjectMercury::MercuryCapsuleGenericTimestep(double simt, double si
 		}
 	}
 
-	if (!OrbiterSoundGoForOrbitPlayed && simt > OrbiterSoundGoForOrbitTime) // OrbiterSoundGoForOrbitTime will be "infinite" if not go for orbit.
+	if (radioContact && !OrbiterSoundGoForOrbitPlayed && simt > OrbiterSoundGoForOrbitTime) // OrbiterSoundGoForOrbitTime will be "infinite" if not go for orbit.
 	{
 		PlayVesselRadioExclusiveWave(OrbiterSoundID, OSGOFORSEVENORBITS);
 		OrbiterSoundGoForOrbitPlayed = true;
@@ -2724,6 +2726,99 @@ inline void ProjectMercury::MercuryCapsuleGenericTimestep(double simt, double si
 	{
 		PlayVesselRadioExclusiveWave(OrbiterSoundID, OSRETROCOUNT);
 		OrbiterSoundRetroCountPlayed = true;
+	}
+
+	// Play apogee and perigee information
+	if (radioContact && !OrbiterSoundApogeeInfoPlayed && simt > OrbiterSoundApogeeInfoTime && VesselStatus == FLIGHT)
+	{
+		// First find out the parameters and if we have a valid orbit
+		ELEMENTS el;
+		ORBITPARAM prm;
+		OBJHANDLE refPlanet = GetGravityRef();
+		GetElements(refPlanet, el, &prm);
+
+		if (el.e < 1.0)
+		{
+			PlayVesselRadioExclusiveWave(OrbiterSoundID, OSAPOGEE);
+
+			double apogee = prm.ApD;
+			double refPlanetRad = oapiGetSize(refPlanet);
+			apogee -= refPlanetRad; // switch to altitude, not radius
+			apogee /= 1e3; // in km (SI units for the win)
+
+			// Then also find perigee
+			double perigee = prm.PeD;
+			perigee -= refPlanetRad; // switch to altitude, not radius
+			perigee /= 1e3; // in km (SI units for the win)
+
+			if (0.0 < perigee && apogee < 1e3) // I don't want a huge string of numbers, and should preferably be positive.
+			{
+				OrbiterSoundPlayAltitude = true;
+
+				int altitude = int(apogee);
+				int digit1 = int(altitude / 100);
+				int digit2 = int((altitude - digit1 * 100) / 10);
+				int digit3 = altitude - digit1 * 100 - digit2 * 10;
+
+				OrbiterSoundAltitudeToPlay[0] = digit1;
+				OrbiterSoundAltitudeToPlay[1] = digit2;
+				OrbiterSoundAltitudeToPlay[2] = digit3;
+
+				altitude = int(perigee);
+				digit1 = int(altitude / 100);
+				digit2 = int((altitude - digit1 * 100) / 10);
+				digit3 = altitude - digit1 * 100 - digit2 * 10;
+				OrbiterSoundAltitudeToPlay[3] = digit1;
+				OrbiterSoundAltitudeToPlay[4] = digit2;
+				OrbiterSoundAltitudeToPlay[5] = digit3;
+
+				OrbiterSoundAltitudePlayIndex = 0;
+			}
+		}
+
+		// Set it played either way, so that we stop looking.
+		OrbiterSoundStartTime = oapiGetSysTime();
+		OrbiterSoundApogeeInfoPlayed = true;
+	}
+
+	sprintf(oapiDebugString(), "OrbiterSoundApogeeInfoTime: %.0f, index %i, perigee: %i, OrbiterSoundStartTime: %.1f", OrbiterSoundApogeeInfoTime, OrbiterSoundAltitudePlayIndex, int(OrbiterSoundPerigeeInfoPlayed), OrbiterSoundStartTime);
+	if (OrbiterSoundPlayAltitude && OrbiterSoundAltitudePlayIndex < 6)
+	{
+		double systime = oapiGetSysTime();
+		if (OrbiterSoundAltitudePlayIndex == 0 && systime > 2.5 + OrbiterSoundStartTime) // wait for apogee call to end
+		{
+			OrbiterSoundPlayTimeHackWav(OrbiterSoundAltitudeToPlay[OrbiterSoundAltitudePlayIndex]);
+			OrbiterSoundAltitudePlayIndex++;
+			OrbiterSoundStartTime = systime;
+			//sprintf(oapiDebugString(), "Played %i: %i at %.2f", OrbiterSoundTimeHackPlayIndex - 1, OrbiterSoundTimeHackToPlay[OrbiterSoundTimeHackPlayIndex - 1], simt); // debug!
+		}
+		else if (OrbiterSoundAltitudePlayIndex != 0)
+		{
+			if (OrbiterSoundAltitudePlayIndex == 3)
+			{
+				if (systime > 2.0 + OrbiterSoundStartTime && !OrbiterSoundPerigeeInfoPlayed) // wait for last numeral to end, and play "perigee"
+				{
+					PlayVesselRadioExclusiveWave(OrbiterSoundID, OSPERIGEE);
+					OrbiterSoundStartTime = systime;
+					OrbiterSoundPerigeeInfoPlayed = true;
+
+					//sprintf(oapiDebugString(), "Played %i: %i at %.2f", OrbiterSoundTimeHackPlayIndex - 1, OrbiterSoundTimeHackToPlay[OrbiterSoundTimeHackPlayIndex - 1], simt); // debug!
+				}
+				else if (systime > 2.5 + OrbiterSoundStartTime && OrbiterSoundPerigeeInfoPlayed)
+				{
+					OrbiterSoundPlayTimeHackWav(OrbiterSoundAltitudeToPlay[OrbiterSoundAltitudePlayIndex]);
+					OrbiterSoundAltitudePlayIndex++;
+					OrbiterSoundStartTime = systime;
+				}
+			}
+			else if (OrbiterSoundAltitudePlayIndex != 3 && systime > 0.75 + OrbiterSoundStartTime) // wait for last numeral to end. OrbiterSound will fail to play if same file plays on top of itself. So make sure that the extra spacing is longer than the longest numeral wav file. (0.74 s)
+			{
+				OrbiterSoundPlayTimeHackWav(OrbiterSoundAltitudeToPlay[OrbiterSoundAltitudePlayIndex]);
+				OrbiterSoundAltitudePlayIndex++;
+				OrbiterSoundStartTime = systime;
+				//sprintf(oapiDebugString(), "Played %i: %i at %.2f", OrbiterSoundTimeHackPlayIndex - 1, OrbiterSoundTimeHackToPlay[OrbiterSoundTimeHackPlayIndex - 1], simt); // debug!
+			}
+		}
 	}
 }
 

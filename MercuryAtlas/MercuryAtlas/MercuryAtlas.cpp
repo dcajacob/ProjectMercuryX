@@ -3360,10 +3360,10 @@ double ProjectMercury::AtlasTargetCutOffAzimuth(double simt, double ri, double l
 	}
 	double targetSMa = 1.0 / (2.0 / rCutoff - cutoffVel * cutoffVel / planetMu);
 
-	double pOverr1 = pow(cutoffVel / vc * cos(targetElevationAngle * RAD), 2.0);
+	double pOverr1 = pow(cutoffVel / vc * cos(targetElevationAngle * RAD), 2);
 	double TrACutoff = atan(tan(targetElevationAngle * RAD) * pOverr1 / (pOverr1 - 1.0));
 	double targetEcc = (pOverr1 - 1) / cos(TrACutoff);
-	double targetPeriod = PI2 * sqrt(pow(planetRad, 3.0) / planetMu) * pow(targetSMa / planetRad, 1.5);
+	double targetPeriod = PI2 * sqrt(pow(planetRad, 3) / planetMu) * pow(targetSMa / planetRad, 1.5);
 	double targetSemilatusRectum = pOverr1 * rCutoff;
 
 	double targetLongEquivalent = missionLandLong + missionOrbitNumber * earthAngularVel * targetPeriod;
@@ -3414,9 +3414,9 @@ double ProjectMercury::AtlasTargetCutOffAzimuth(double simt, double ri, double l
 			double omegaPlusTrA2e = asin(sin(latI * RAD) / sin(acos(cosInclination))) - TrACutoff + TrA2e * RAD;
 			dPhi2 = sin(acos(cosInclination)) * cos(omegaPlusTrA2e) / cos(missionLandLat * RAD) * dOmegaSmall;
 
-			dOmegaLarge = -6.9444e-3 / 60.0 * pow(planetRad / targetSemilatusRectum, 2.0) * pow(planetRad / targetSMa, 1.5) * cosInclination * (missionOrbitNumber * targetPeriod + TimeFromPerigee(targetPeriod, targetEcc, TrA2e * RAD) - 0.0);
+			dOmegaLarge = -6.9444e-3 / 60.0 * pow(planetRad / targetSemilatusRectum, 2) * pow(planetRad / targetSMa, 1.5) * cosInclination * (missionOrbitNumber * targetPeriod + TimeFromPerigee(targetPeriod, targetEcc, TrA2e * RAD) - 0.0);
 
-			dLambda2 = cosInclination / pow(cos(omegaPlusTrA2e), 2.0) / (1.0 + cosInclination * cosInclination * pow(tan(omegaPlusTrA2e), 2.0)) * dOmegaSmall + dOmegaLarge;
+			dLambda2 = cosInclination / pow(cos(omegaPlusTrA2e), 2) / (1.0 + cosInclination * cosInclination * pow(tan(omegaPlusTrA2e), 2)) * dOmegaSmall + dOmegaLarge;
 		}
 	}
 
@@ -3876,6 +3876,8 @@ void ProjectMercury::CapsuleSeparate(void)
 			{
 				oapiWriteLog("GO for orbit!");
 				OrbiterSoundGoForOrbitTime = oapiGetSimTime() + (5.0 * GenerateRandomNorm() + 30.0); // play ca. 30 sec after SECO
+
+				OrbiterSoundApogeeInfoTime = oapiGetSimTime() + (60.0 * GenerateRandomNorm() + 800.0); // play ca. 14 minutes after SECO (MA-7 was at T+19:30)
 			}
 			else if (abs(historyCutOffAngl) < 0.9063 && historyCutOffVel < maxVel) // not larger than minVel
 			{

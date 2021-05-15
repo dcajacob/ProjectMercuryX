@@ -383,6 +383,8 @@ public:
 	bool OrbiterSoundPitch77Played = false;
 	bool OrbiterSoundStandByCutoffPlayed = false;
 	bool OrbiterSoundLowG10secPlayed = false;
+	double OrbiterSoundApogeeInfoTime = 1e10;
+	bool OrbiterSoundApogeeInfoPlayed = false;
 
 private:
 	static void vlift(VESSEL* v, double aoa, double M, double Re, void* context, double* cl, double* cm, double* cd);
