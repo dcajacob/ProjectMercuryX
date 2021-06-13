@@ -2781,7 +2781,6 @@ inline void ProjectMercury::MercuryCapsuleGenericTimestep(double simt, double si
 		OrbiterSoundApogeeInfoPlayed = true;
 	}
 
-	sprintf(oapiDebugString(), "OrbiterSoundApogeeInfoTime: %.0f, index %i, perigee: %i, OrbiterSoundStartTime: %.1f", OrbiterSoundApogeeInfoTime, OrbiterSoundAltitudePlayIndex, int(OrbiterSoundPerigeeInfoPlayed), OrbiterSoundStartTime);
 	if (OrbiterSoundPlayAltitude && OrbiterSoundAltitudePlayIndex < 6)
 	{
 		double systime = oapiGetSysTime();

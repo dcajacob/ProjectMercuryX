@@ -717,7 +717,7 @@ inline void ProjectMercury::AnimateDials(void)
 	double pressureDifference = (atmPressure - referenceTankAirPressure) * sqrt(ATMP / max(atmPressure, 0.01)); // sqrt atmp/p to get a rough scaling to compensate
 	float descent = pressureDifference * 2.95 / 108.0 * 2.94 / 1.62; // gives positive change for denser atmosphere, and thus positive rate if falling, which is correct with dial. 2.95 / 108.0 is calibration factor.
 	if (atmPressure < 1.0) descent = 0.0; // force to zero if pressure is super low, as the variometer freaks out at high time acc, which you are only doing outside of the atmosphere anyway.
-	sprintf(oapiDebugString(), "descent: %.2f", descent);
+	//sprintf(oapiDebugString(), "descent: %.2f m/s", descent * 0.3048 * 10.0);
 	//VECTOR3 vel; GetGroundspeedVector(FRAME_HORIZON, vel);
 	//sprintf(oapiDebugString(), "Pa: %.1f Pa, desc: %.2f, temp: %.2f", GetAtmPressure(), descent, vel.y / 3.048);
 	RotateArmGroup(armGroups[idx], descentPos[0], descentPos[1], 95.0f, 10.0f, ValueToAngle(descent, 0.0f, 15.0f, 180.0f, 0.0f), 0.85f);
