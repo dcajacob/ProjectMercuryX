@@ -152,3 +152,6 @@ LC5/LC5/Release/vc142.pdb
 LC5/LC5/Release/LC5.tlog/link.read.1.tlog
 LC5/.vs/LC5/v16/.suo
 LC5/LC5/Release/vc142.pdb
+LC5/.vs/LC5/v16/.suo
+*.db
+*.log
