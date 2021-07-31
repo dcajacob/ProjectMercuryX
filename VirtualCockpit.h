@@ -761,6 +761,7 @@ inline void ProjectMercury::AnimateDials(void)
 	double Eval = floor((Bval - Dval) / 30.6001);
 	double dayDec = Bval - Dval - floor(30.6001 * Eval) + Ffrac;
 	double decimal = dayDec - floor(dayDec);
+	// OPSOPSOPS DEBUG! Fix fix fix. Seems like all this finding-correct-date thing is superfluous, as decimal is the reminder of subtracting integers. Apparently only Ffrac can be non-integer, so I only think we need that.
 	// And finally, the time of day
 	float hour = float(decimal * 24.0);
 	float minute = float((decimal - floor(hour) / 24.0) * 1440.0);
@@ -909,7 +910,7 @@ inline void ProjectMercury::RotateArmGroup(int groupNum, float x0, float y0, flo
 	float armInner0y = -negLength * sin(angleR) + width / 2.0f * cos(angleR) + y0;
 
 	float armInner1x = -negLength * cos(angleR) - width / 2.0f * sin(-angleR) + x0;// +xTraOffset;
-	float armInner1y = -negLength * sin(angleR) -width / 2.0f * cos(angleR) + y0;
+	float armInner1y = -negLength * sin(angleR) - width / 2.0f * cos(angleR) + y0;
 
 	float armOuter0x = length * pointiness * cos(angleR) + width / 2.0f * sin(-angleR) + x0;// +xTraOffset;
 	float armOuter0y = length * pointiness * sin(angleR) + width / 2.0f * cos(angleR) + y0;

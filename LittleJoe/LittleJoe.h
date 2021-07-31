@@ -373,7 +373,7 @@ public:
 	// OrbiterSound
 	int OrbiterSoundID;
 	void OrbiterSoundPlayTimeHackWav(int numeral);
-	enum orbitersoundsounds { OSLOWGTIMEHACK = 1, OSATLASLAUNCHCOUNT, OSGOFORSEVENORBITS, OSRETROCOUNT, OSSTANDBYSECO, OSTRAJGO, OSSTANDBYCUTOFF, OSLOWG10S, OS0, OS1, OS2, OS3, OS4, OS5, OS6, OS7, OS8, OS9, OSATTITUDE, OSRETRO }; // start from 1, due to OrbiterSound rules
+	enum orbitersoundsounds { OSLOWGTIMEHACK = 1, OSATLASLAUNCHCOUNT, OSGOFORSEVENORBITS, OSRETROCOUNT, OSSTANDBYSECO, OSTRAJGO, OSSTANDBYCUTOFF, OSLOWG10S, OS0, OS1, OS2, OS3, OS4, OS5, OS6, OS7, OS8, OS9, OSATTITUDE, OSRETRO, OSAPOGEE, OSPERIGEE }; // start from 1, due to OrbiterSound rules
 	double OrbiterSoundStartTime = 0.0; // system time of when last sound was played
 	bool OrbiterSoundPlayTimeHack = false;
 	int OrbiterSoundTimeHackPlayIndex = 0; // in HH MM SS = 01 23 45. If 6, then we are finished with time hack.
@@ -386,6 +386,12 @@ public:
 	bool OrbiterSoundPitch77Played = false;
 	bool OrbiterSoundStandByCutoffPlayed = false;
 	bool OrbiterSoundLowG10secPlayed = false;
+	bool OrbiterSoundApogeeInfoPlayed = false;
+	double OrbiterSoundApogeeInfoTime = 1e10; // "inf"
+	bool OrbiterSoundPlayAltitude = false;
+	int OrbiterSoundAltitudeToPlay[6] = { 0 };
+	int OrbiterSoundAltitudePlayIndex = 0;
+	bool OrbiterSoundPerigeeInfoPlayed = false;
 
 private:
 	static void vlift(VESSEL* v, double aoa, double M, double Re, void* context, double* cl, double* cm, double* cd);

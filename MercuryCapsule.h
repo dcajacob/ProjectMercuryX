@@ -2446,6 +2446,7 @@ inline void ProjectMercury::MercuryCapsuleGenericTimestep(double simt, double si
 	radioContact = InRadioContact(planetRef);
 
 	referenceTankAirPressure += (GetAtmPressure() - referenceTankAirPressure) * simdt * 1.6; // 300 K is capsule temperature, which air that enters the variometer also has (I assume).
+	referenceTankAirPressure = max(referenceTankAirPressure, 0.0); // in case it gets negative.
 	// If we're in panel mode with 2D panel, then animate. Note that oapiCameraInternal only gives true if in focus object, so first condition is not necessary, but better safe than sorry, especially considering potential later Orbiter verion changing it.
 	if (oapiGetFocusObject() == GetHandle() && oapiCameraInternal() && oapiCockpitMode() == COCKPIT_PANELS && panelView)
 	{

@@ -1677,9 +1677,6 @@ void ProjectMercury::RedstoneAutopilot(double simt, double simdt)
 	else
 		pitchRate = 0.0;
 
-
-	//sprintf(oapiDebugString(), "MET %.1f, aim: %.2f, integratedPitch: %.3f, diff: %.2f", met, currentPitchAim, integratedPitch, pitchDiff);
-
 	if (simdt > timeStepLimit)
 	{
 		if (eulerPitch == 0.0) eulerPitch = currentPitchAim * RAD - GetPitch();

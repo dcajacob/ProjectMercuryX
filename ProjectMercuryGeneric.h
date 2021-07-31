@@ -289,9 +289,6 @@ inline double ProjectMercury::MnA2TrA(double MnA, double Ecc)
 
 inline double ProjectMercury::TrA2MnA(double TrA, double Ecc)
 {
-	//double MnA = TrA - 2.0 * Ecc * sin(TrA) + (3.0 / 4.0 * pow(Ecc, 2) + pow(Ecc, 4) / 8.0) * sin(2.0 * TrA) - pow(Ecc, 3) / 3.0 * sin(3.0 * TrA) + 5.0 / 32.0 * pow(Ecc, 4) * sin(4.0 * TrA);
-	// Old Taylor series diverges for high Ecc and is in general shit, when we can use analytical result.
-
 	double EccAnom = EccentricAnomaly(Ecc, TrA);
 	//if (Ecc > 1.0) return Ecc * sinh(EccAnom) - EccAnom; // hyperbolic
 	return EccAnom - Ecc * sin(EccAnom); // elliptic
