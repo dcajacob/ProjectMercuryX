@@ -720,7 +720,7 @@ inline void ProjectMercury::AnimateDials(void)
 	//sprintf(oapiDebugString(), "descent: %.2f m/s", descent * 0.3048 * 10.0);
 	//VECTOR3 vel; GetGroundspeedVector(FRAME_HORIZON, vel);
 	//sprintf(oapiDebugString(), "Pa: %.1f Pa, desc: %.2f, temp: %.2f", GetAtmPressure(), descent, vel.y / 3.048);
-	RotateArmGroup(armGroups[idx], descentPos[0], descentPos[1], 95.0f, 10.0f, ValueToAngle(descent, 0.0f, 15.0f, 180.0f, 0.0f), 0.85f);
+	RotateArmGroup(armGroups[idx], descentPos[0], descentPos[1], 95.0f, 10.0f, ValueToAngle(descent, 0.0f, 15.0f, 179.999f, 0.0f), 0.85f); // 179.99f as 180 gives a negative sign in direction if going from max descent to a positive value, which happens if the capsule drops through a pocket of less dense atmosphere (which seems to be at approx 10 km on Earth).
 	idx += 1;
 
 	// Altitude

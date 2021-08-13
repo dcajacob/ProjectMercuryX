@@ -224,17 +224,22 @@ void ProjectMercury::RetroAttitudeAuto(double simt, double simdt, bool highTorqu
 	{
 		bool result[3] = { false, false, false }; // If you want to log which attitudes are at target
 
-		if (highTorque)
-		{
-			result[0] = SetPitchAuto(-34.0, highTorque);
-		}
+		if (CapsuleVersion == FREEDOM7 && VesselStatus == FLIGHT && !engageRetro)
+			result[0] = SetPitchAuto(-14.5, highTorque); // on MR-3 the ASCS pitch was 14.5 degrees up until retrosequence (19720065957 page 13)
 		else
-		{
-			// Remember that highTorque here always will be false.
-			// But no. On MA-6, with lowTorque thruster failed, ASCS went into highTorque when passing more than 20 deg off-course
-			/*if (attitudeHold14deg) result[0] = SetPitchAuto(-14.5, highTorque); // for periscope centering
-			else */result[0] = SetPitchAuto(-34.0, highTorque);
-		}
+			result[0] = SetPitchAuto(-34.0, highTorque);
+
+		//if (highTorque)
+		//{
+		//	result[0] = SetPitchAuto(-34.0, highTorque);
+		//}
+		//else
+		//{
+		//	// Remember that highTorque here always will be false.
+		//	// But no. On MA-6, with lowTorque thruster failed, ASCS went into highTorque when passing more than 20 deg off-course
+		//	/*if (attitudeHold14deg) result[0] = SetPitchAuto(-14.5, highTorque); // for periscope centering
+		//	else */result[0] = SetPitchAuto(-34.0, highTorque);
+		//}
 
 		result[1] = SetYawAuto(highTorque);
 		result[2] = SetRollAuto(highTorque);
