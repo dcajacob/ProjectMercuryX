@@ -6,7 +6,7 @@
 #define ORBITER_MODULE
 #define VESSELVER VESSEL3
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 class ProjectMercury : public VESSELVER
 {
@@ -33,7 +33,7 @@ private:
 	int TextX0, secondColumnHUDx, LineSpacing, TextY0;
 };
 
-#include "..\..\FunctionsForOrbiter2010.h"
+#include "../../FunctionsForOrbiter2010.h"
 
 // ==============================================================
 // API interface

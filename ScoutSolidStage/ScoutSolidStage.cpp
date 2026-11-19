@@ -15,7 +15,7 @@
 #define STRICT
 #define ORBITER_MODULE
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 
 
@@ -72,6 +72,10 @@ const double STAGE3_ISP = STAGE3_BURNTIME * STAGE3_THRUST / STAGE3_FUEL_MASS; //
 class ProjectMercury : public VESSEL3
 {
 public:
+	void GetNoisyAngularVel(VECTOR3& av, double stddev);
+	double TimeFromPerigee(double e, double a, double theta);
+	void GetEquPosInTime(double t, double a, double e, double i, double lan, double argPe, double tra, double mu, double rot, double* lng, double* lat);
+
 	ProjectMercury(OBJHANDLE hVessel, int flightmodel);
 	~ProjectMercury();
 	void clbkSetClassCaps(FILEHANDLE cfg);
@@ -98,7 +102,7 @@ public:
 	double OrbitalFrameSlipAngle2(VECTOR3 pos, VECTOR3 vel);
 	void AimEulerAngle(double pitch, double yaw);
 	double GenerateRandom01(void);
-	double GenerateRandomNorm(double a1, double a2);
+	double GenerateRandomNorm(double a1=2.0, double a2=0.5);
 	double GenerateRandomAngleNorm(double a1, double a2);
 	double NormAngleDeg(double ang);
 	bool InRadioContact(OBJHANDLE planet);
@@ -119,8 +123,8 @@ private:
 	bool createdAbove50km[50];
 };
 
-#include "..\FunctionsForOrbiter2010.h"
-#include "..\ProjectMercuryGeneric.h"
+#include "../FunctionsForOrbiter2010.h"
+#include "../ProjectMercuryGeneric.h"
 
 ProjectMercury::ProjectMercury(OBJHANDLE hVessel, int flightmodel) : VESSEL3(hVessel, flightmodel)
 {

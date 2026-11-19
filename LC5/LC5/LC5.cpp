@@ -6,7 +6,7 @@
 #define ORBITER_MODULE
 #define VESSELVER VESSEL4
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 //#include <algorithm>
 
 const double LC_MASS = 2e6; // guesstimate
@@ -131,7 +131,7 @@ private:
 	enum towerstaus { CLOSE, MOVEAWAY, MOVECLOSE, AWAY } TowerInProcess;
 };
 
-#include "..\..\FunctionsForOrbiter2016.h"
+#include "../../FunctionsForOrbiter2016.h"
 
 
 // ==============================================================
@@ -143,7 +143,7 @@ ProjectMercury::ProjectMercury(OBJHANDLE hVessel, int flightmodel) : VESSELVER(h
 {
 	launchPad = oapiLoadMeshGlobal("ProjectMercury\\K-Pad-5");
 
-	DefineAnimation();
+
 	//TowerProcess = CLOSE;
 	TowerInProcess = AWAY;
 }
@@ -188,6 +188,8 @@ void ProjectMercury::clbkSetClassCaps(FILEHANDLE cfg)
 	rocketAttach = CreateAttachment(false, rocketPosition + PAD_OFFSET, unit(rocketDirection), _V(0, 0, 1), "ROCKET", true);
 
 	LaunchPad = AddMesh(launchPad, &MESH_OFFSET);
+	// Animation transforms must reference an assigned mesh index.
+	DefineAnimation();
 	SetMeshVisibilityMode(LaunchPad, MESHVIS_ALWAYS | MESHVIS_EXTPASS);
 
 	SURFHANDLE cont3 = oapiRegisterParticleTexture("Contrail3");

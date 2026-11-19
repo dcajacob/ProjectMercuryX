@@ -155,3 +155,8 @@ LC5/LC5/Release/vc142.pdb
 LC5/.vs/LC5/v16/.suo
 *.db
 *.log
+
+# Native CMake builds and Python verification caches
+/build*/
+__pycache__/
+*.pyc

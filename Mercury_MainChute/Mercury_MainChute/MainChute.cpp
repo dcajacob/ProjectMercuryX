@@ -5,7 +5,7 @@
 #define STRICT
 #define ORBITER_MODULE
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 const double LENGTH_CHUTE = 1.0;
 const double  MERCURY_CHUTE = 20.0;
@@ -48,7 +48,7 @@ private:
 	/*const */double chuteLevel = 1.0; // debug orbiter2016 orbiter2010
 };
 
-#include "..\..\FunctionsForOrbiter2010.h"
+#include "../../FunctionsForOrbiter2010.h"
 
 // ==============================================================
 // API interface

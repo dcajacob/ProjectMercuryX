@@ -19,7 +19,7 @@ const VECTOR3 VC_INTERNAL_OFS = _V(0.0, 0.5, -0.8);
 const VECTOR3 VC_FRAME_OFS = _V(0.0, -1.5, 5.0) + VC_INTERNAL_OFS;
 
 // Create panel ID's as enum, as we don't care about the value, only that it's an unique ID. This way, they get autoassigned in increasing order. We don't need any variable.
-const enum PANEL_ID { PANEL_ID_PERISCOPE_FILTER_SWITCH , PANEL_ID_LOAD_RESET, 
+enum PANEL_ID { PANEL_ID_PERISCOPE_FILTER_SWITCH , PANEL_ID_LOAD_RESET,
 PANEL_ID_TOWJET_BUTTON, PANEL_ID_CAPSEP_BUTTON, PANEL_ID_RETSEQ_BUTTON, PANEL_ID_RETJET_BUTTON, PANEL_ID_TIMZER_BUTTON,
 // Physical switches:
 PANEL_ID_AUTORETJET_SWITCH_L, PANEL_ID_AUTORETJET_SWITCH_R,
@@ -150,7 +150,7 @@ bool ProjectMercury::clbkLoadPanel2D(int id, PANELHANDLE hPanel, DWORD viewW, DW
 		VersionDependentPanelClick(PANEL_ID_FIREFLY, _R(1080 - 250, 325 - 325, 1080 + 250, 325 + 325), 0, PANEL_REDRAW_NEVER, PANEL_MOUSE_LBDOWN, hPanel, _R(0, 0, 0, 0), NULL);
 		
 		return true; // always available
-	case 1: // periscope
+	case 1: { // periscope
 		if (VesselStatus != FLIGHT && VesselStatus != REENTRY && VesselStatus != REENTRYNODROGUE && !(VesselStatus == LAUNCH && GroundContact())) // must be in capsule mode
 		{
 			return false;
@@ -227,6 +227,7 @@ bool ProjectMercury::clbkLoadPanel2D(int id, PANELHANDLE hPanel, DWORD viewW, DW
 		// Click to switch filters
 		VersionDependentPanelClick(PANEL_ID_PERISCOPE_FILTER_SWITCH, _R(0, 0, PANEL2D_WIDTH, PANEL2D_HEIGHT), 0, PANEL_REDRAW_NEVER, PANEL_MOUSE_LBDOWN, hPanel, _R(0, 0, 0, 0), NULL);
 		return true;
+	}
 	case 2: // rocket camera
 		if (VesselStatus != FLIGHT && VesselStatus != REENTRY && VesselStatus != REENTRYNODROGUE && VesselStatus != ABORT && VesselStatus != ABORTNORETRO) // basically in launch, but different states between Redstone and Atlas
 		{

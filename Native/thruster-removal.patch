@@ -1,0 +1,23 @@
+--- a/Src/Orbiter/Vessel.cpp
++++ b/Src/Orbiter/Vessel.cpp
+@@ -1440,18 +1440,12 @@
+ 	// remove from default thruster group lists
+ 	for (auto it = m_thrusterGroupDef.begin(); it != m_thrusterGroupDef.end(); it++) {
+ 		ThrustGroupSpec* tgs = &(*it);
+-		for (auto its = tgs->ts.begin(); its != tgs->ts.end(); its++) {
+-			if (*its == ts)
+-				tgs->ts.erase(its);
+-		}
++		tgs->ts.erase(std::remove(tgs->ts.begin(), tgs->ts.end(), ts), tgs->ts.end());
+ 	}
+ 	// remove from user thruster group lists
+ 	for (auto it = m_thrusterGroupUsr.begin(); it != m_thrusterGroupUsr.end(); it++) {
+ 		ThrustGroupSpec* tgs = *it;
+-		for (auto its = tgs->ts.begin(); its != tgs->ts.end(); its++) {
+-			if (*its == ts)
+-				tgs->ts.erase(its);
+-		}
++		tgs->ts.erase(std::remove(tgs->ts.begin(), tgs->ts.end(), ts), tgs->ts.end());
+ 	}
+ 	// remove from full thruster list
+ 	auto it = std::find(m_thruster.begin(), m_thruster.end(), ts);

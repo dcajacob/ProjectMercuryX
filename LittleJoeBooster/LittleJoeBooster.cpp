@@ -5,7 +5,7 @@
 #define STRICT
 #define ORBITER_MODULE
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 const double LITTLEJOE_LENGTH = 7.70;
 const VECTOR3 LITTLEJOE_CASTOR_EXHAUST_POS = { 0.450, 0.450, 2.15 };
@@ -91,7 +91,7 @@ private:
 	double explosionLevel = 0.0;
 };
 
-#include "..\FunctionsForOrbiter2010.h"
+#include "../FunctionsForOrbiter2010.h"
 
 ProjectMercury::ProjectMercury(OBJHANDLE hVessel, int flightmodel) : VESSEL3(hVessel, flightmodel)
 {

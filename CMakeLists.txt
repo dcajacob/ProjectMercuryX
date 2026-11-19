@@ -1,0 +1,65 @@
+cmake_minimum_required(VERSION 3.24)
+project(ProjectMercuryX LANGUAGES C CXX)
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "This native integration currently targets Linux. Use the original Visual Studio projects for the legacy Windows build.")
+endif()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(ORBITER_NATIVE_SOURCE_DIR "" CACHE PATH "Matching cross-platform Orbiter SDK source")
+set(ORBITER_NATIVE_BUILD_DIR "" CACHE PATH "Matching native Orbiter engine build")
+if(NOT EXISTS "${ORBITER_NATIVE_SOURCE_DIR}/Orbitersdk/include/NativeVesselAPI.h" OR
+   NOT EXISTS "${ORBITER_NATIVE_BUILD_DIR}/native-sdk/OrbiterNativeBuild.h")
+    message(FATAL_ERROR "Set ORBITER_NATIVE_SOURCE_DIR and ORBITER_NATIVE_BUILD_DIR to a matching native Orbiter source/engine pair")
+endif()
+add_library(mercury_sdk INTERFACE)
+target_include_directories(mercury_sdk SYSTEM INTERFACE
+    "${ORBITER_NATIVE_SOURCE_DIR}/Orbitersdk/include"
+    "${ORBITER_NATIVE_SOURCE_DIR}/Src/Orbiter"
+    "${ORBITER_NATIVE_BUILD_DIR}/native-sdk")
+target_include_directories(mercury_sdk INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/Native")
+target_compile_definitions(mercury_sdk INTERFACE MERCURY_NATIVE_ORBITER
+    ORBITER_NATIVE_BUILD_CONFIGURATION="$<CONFIG>")
+find_library(mercury_boundary orbiter_production_boundary PATHS "${ORBITER_NATIVE_BUILD_DIR}" NO_DEFAULT_PATH REQUIRED)
+find_library(mercury_vessels orbiter_production_vessels PATHS "${ORBITER_NATIVE_BUILD_DIR}" NO_DEFAULT_PATH REQUIRED)
+target_link_libraries(mercury_sdk INTERFACE "${mercury_boundary}" "${mercury_vessels}" ${CMAKE_DL_LIBS})
+add_library(mercury_audio STATIC Native/MercurySound.cpp Native/MercurySdk.cpp)
+set_target_properties(mercury_audio PROPERTIES POSITION_INDEPENDENT_CODE ON CXX_VISIBILITY_PRESET hidden)
+target_link_libraries(mercury_audio PUBLIC mercury_sdk)
+target_include_directories(mercury_audio SYSTEM PRIVATE "${ORBITER_NATIVE_SOURCE_DIR}/Sound/XRSound/src")
+
+function(mercury_module name source)
+    add_library(${name} MODULE "${source}" Native/Module.cpp)
+    target_link_libraries(${name} PRIVATE mercury_audio)
+    target_compile_definitions(${name} PRIVATE MERCURY_MODULE_NAME="${name}")
+    set_target_properties(${name} PROPERTIES PREFIX "" CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/NativeModules/Vessel/ProjectMercury")
+    if(UNIX AND NOT APPLE)
+        target_link_options(${name} PRIVATE -Wl,--no-undefined)
+    endif()
+    install(TARGETS ${name} LIBRARY DESTINATION NativeModules/Vessel/ProjectMercury)
+endfunction()
+mercury_module(ProjectMercuryRedstone ProjectMercuryRedstone.cpp)
+mercury_module(ProjectMercuryAtlas MercuryAtlas/MercuryAtlas/MercuryAtlas.cpp)
+mercury_module(Mercury_AtlasCore MercuryAtlasCore/MercuryAtlasCore/Mercury_AtlasCore.cpp)
+mercury_module(Mercury_RedstoneBooster Mercury_RedstoneBooster/Mercury_RedstoneBooster/Mercury_RedstoneBooster.cpp)
+mercury_module(Mercury_Abort MercuryAbort/MercuryAbort/Mercury_Abort.cpp)
+mercury_module(Mercury_AntennaDrogue Mercury_AntennaDrogue/Mercury_AntennaDrogue/Source.cpp)
+mercury_module(Mercury_MainChute Mercury_MainChute/Mercury_MainChute/MainChute.cpp)
+mercury_module(Mercury_GenericInert MercuryGenericIntert/MercuryGenericIntert/GenericInert.cpp)
+mercury_module(Mercury_LC5 LC5/LC5/LC5.cpp)
+mercury_module(Mercury_LC14 LC14/LC14/LC14.cpp)
+mercury_module(ProjectMercuryLittleJoe LittleJoe/LittleJoe.cpp)
+mercury_module(LittleJoeBooster LittleJoeBooster/LittleJoeBooster.cpp)
+mercury_module(LittleJoeRamp LittleJoeRamp/LittleJoeRamp.cpp)
+mercury_module(ProjectMercuryScout MercuryScout/Scout.cpp)
+mercury_module(ScoutStageGeneric ScoutSolidStage/ScoutSolidStage.cpp)
+
+add_library(orbiter_production_vessels SHARED IMPORTED)
+set_target_properties(orbiter_production_vessels PROPERTIES
+    IMPORTED_LOCATION "${mercury_vessels}"
+    INTERFACE_LINK_LIBRARIES "${mercury_boundary}"
+    INTERFACE_INCLUDE_DIRECTORIES "${ORBITER_NATIVE_SOURCE_DIR}/Orbitersdk/include;${ORBITER_NATIVE_SOURCE_DIR}/Src/Orbiter;${ORBITER_NATIVE_BUILD_DIR}/native-sdk"
+    INTERFACE_COMPILE_DEFINITIONS "ORBITER_PRODUCTION_SHARED;ORBITER_NATIVE_BUILD_CONFIGURATION=\"${CMAKE_BUILD_TYPE}\"")
+include("${ORBITER_NATIVE_SOURCE_DIR}/Sound/XRSound/src/NativeXRSound.cmake")
+target_sources(native_xrsound PRIVATE Native/MercuryXRSoundExports.cpp)
+install(TARGETS native_xrsound LIBRARY DESTINATION NativeModules/Plugin)

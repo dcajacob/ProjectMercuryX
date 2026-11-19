@@ -5,7 +5,7 @@
 #define STRICT
 #define ORBITER_MODULE
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 const double STAGE1_LENGTH = 18.2;
 const VECTOR3 REDSTONE_EXHAUST_POS = { 0.0, 0.0, - STAGE1_LENGTH / 2.0 };
@@ -56,7 +56,7 @@ private:
 	double explosionLevel = 0.0;
 };
 
-#include "..\..\FunctionsForOrbiter2010.h"
+#include "../../FunctionsForOrbiter2010.h"
 
 ProjectMercury::ProjectMercury(OBJHANDLE hVessel, int flightmodel) : VESSEL3(hVessel, flightmodel)
 {

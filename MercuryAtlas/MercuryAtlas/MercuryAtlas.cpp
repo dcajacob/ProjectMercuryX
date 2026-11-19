@@ -18,11 +18,11 @@
 #define ORBITER_MODULE
 #define VESSELVER VESSEL4
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 #include "MercuryAtlas.h"
-#include "..\..\FunctionsForOrbiter2016.h"
-#include "..\..\MercuryCapsule.h"
+#include "../../FunctionsForOrbiter2016.h"
+#include "../../MercuryCapsule.h"
 #include <fstream> // debug, for appending entry data to file
 
 
@@ -1337,7 +1337,7 @@ int ProjectMercury::clbkConsumeBufferedKey(DWORD key, bool down, char* kstate)
 
 				Mainchute = AddMesh(mainChute, &MERCURY_OFS_MAINCHUTE);
 				SetMeshVisibilityMode(Mainchute, MESHVIS_ALWAYS);
-				if (landingBagDeployed) Landingbag = AddMesh(landingbag, &(MERCURY_OFS_LANDBAG - MERCURY_OFS_CAPSULE));
+				if (landingBagDeployed) Landingbag = MercuryAddMesh(*this, landingbag, MERCURY_OFS_LANDBAG - MERCURY_OFS_CAPSULE);
 			}
 			return 1;
 		}
@@ -3269,6 +3269,16 @@ void ProjectMercury::AtlasAutopilot(double simt, double simdt)
 	AtlasEngineDir();
 
 	VECTOR3 Force;
+	#ifdef MERCURY_NATIVE_ORBITER
+	if (std::getenv("MERCURY_GUIDANCE_TRACE")) {
+		static int previous=-1;
+		const int sample=int(met/10.0);
+		if (sample!=previous) {
+			previous=sample;
+			oapiWriteLogV("Mercury guidance MET %.2f: alt %.0f speed %.2f target %.2f pitch %.3f rate %.3f w %.3f %.3f %.3f ctrl %.6f %.6f %.6f vertical %.2f",met,GetAltitude(),currentOrbitalVelocity,targetOrbitalVelocity,GetPitch()*DEG,pitchRate*DEG,currentAngRate.x*DEG,currentAngRate.y*DEG,currentAngRate.z*DEG,GetControlSurfaceLevel(AIRCTRL_ELEVATOR),GetControlSurfaceLevel(AIRCTRL_RUDDER),GetControlSurfaceLevel(AIRCTRL_AILERON),verticalSpeed);
+		}
+	}
+	#endif
 	GetForceVector(Force);
 	integratedSpeed += simdt * length(Force) / GetMass();
 

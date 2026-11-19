@@ -17,10 +17,10 @@
 #define ORBITER_MODULE
 #define VESSELVER VESSEL4
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 #include "LittleJoe.h"
-#include "..\FunctionsForOrbiter2016.h"
-#include "..\MercuryCapsule.h"
+#include "../FunctionsForOrbiter2016.h"
+#include "../MercuryCapsule.h"
 
 
 ProjectMercury::ProjectMercury(OBJHANDLE hVessel, int flightmodel)
@@ -785,7 +785,7 @@ int ProjectMercury::clbkConsumeBufferedKey(DWORD key, bool down, char* kstate)
 
 				Mainchute = AddMesh(mainChute, &MERCURY_OFS_MAINCHUTE);
 				SetMeshVisibilityMode(Mainchute, MESHVIS_ALWAYS);
-				if (landingBagDeployed) Landingbag = AddMesh(landingbag, &(MERCURY_OFS_LANDBAG - MERCURY_OFS_CAPSULE));
+				if (landingBagDeployed) Landingbag = MercuryAddMesh(*this, landingbag, MERCURY_OFS_LANDBAG - MERCURY_OFS_CAPSULE);
 			}
 			return 1;
 		}

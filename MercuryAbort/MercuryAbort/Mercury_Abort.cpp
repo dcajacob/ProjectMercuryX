@@ -6,7 +6,7 @@
 #define ORBITER_MODULE
 #define VESSELVER VESSEL4
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 const VECTOR3 OFS_AB = { 0.0, 0.0, -1.9 };
 const double THRUST_VAC_ESC = 231308.0; // Totalling 52000 lb (or 58500 lb), burn time 0.78
@@ -72,7 +72,7 @@ private:
 	PSTREAM_HANDLE contrail_escape = NULL;
 };
 
-#include "..\..\FunctionsForOrbiter2016.h"
+#include "../../FunctionsForOrbiter2016.h"
 
 // ==============================================================
 // API interface

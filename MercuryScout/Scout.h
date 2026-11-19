@@ -168,6 +168,9 @@ const int baseContactLogLength = 10;
 
 class ProjectMercury : public VESSELVER {
 public:
+	void GetNoisyAngularVel(VECTOR3& av, double stddev);
+	double TimeFromPerigee(double period, double ecc, double trA);
+	void GetEquPosInTime(double, double, double, double, double, double, double, double, double, double*, double*);
 	ProjectMercury(OBJHANDLE hVessel, int flightmodel);
 	~ProjectMercury();
 	void clbkSetClassCaps(FILEHANDLE cfg);

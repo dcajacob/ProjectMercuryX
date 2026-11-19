@@ -1,2 +1,2 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Unified patch context includes a required prefix before original tabs.
+Native/*.patch -whitespace

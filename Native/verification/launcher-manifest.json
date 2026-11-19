@@ -1,0 +1,137 @@
+[
+  {
+    "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/1. Launch of Freedom 7.scn",
+    "scenario_sha256": "430a64e4fa81dee65dd4d2814f3605f158aecfae365a74f16ee3feb9635e122c",
+    "module": [
+      "ProjectMercury/ProjectMercuryRedstone.so",
+      "ProjectMercury/Mercury_LC5.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/2. Launch of Liberty Bell 7.scn",
+    "scenario_sha256": "8b67a117e1006d0f348cc160ad3afbc4323f9485c0b99dabb0126c307d8b54c3",
+    "module": [
+      "ProjectMercury/ProjectMercuryRedstone.so",
+      "ProjectMercury/Mercury_LC5.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/3. Launch of Friendship 7.scn",
+    "scenario_sha256": "3841000edbe135de94f1b68b9c6fbf43dd08e7257b1e4bb45f3a01406353c90f",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/4. Launch of Aurora 7.scn",
+    "scenario_sha256": "1097a92d43a6de28665261ecc593515a7334559ca80ab60f74dbcee4715ea3a9",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/5. Launch of Sigma 7.scn",
+    "scenario_sha256": "af9a2d97a42b62ea67171a1498c94ef242c3dfb31a7421f83360c557c1e502db",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/6. Launch of Faith 7.scn",
+    "scenario_sha256": "454fc6b19bccedece45c27832368a8f065ad6056633507d19f2bddd2712971bf",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/01 Freedom 7 - ascent.scn",
+    "scenario_sha256": "78a2fb5846050c5d48032621a4c957f47c758c1a1d0e56c186ce3331994e89e0",
+    "module": [
+      "ProjectMercury/ProjectMercuryRedstone.so",
+      "ProjectMercury/Mercury_LC5.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/02 Freedom 7 - splashdown.scn",
+    "scenario_sha256": "2dca63095c23365e7e8428095b9f5a7d7d192a9bd30400ccd0c4673d12413c1f",
+    "module": [
+      "ProjectMercury/ProjectMercuryRedstone.so",
+      "ProjectMercury/Mercury_LC5.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/03 Liberty Bell 7 - splashdown.scn",
+    "scenario_sha256": "c0760ad70a9542316d3b9d5bc006909ea12c8ae05d9c82b2d6b15c9100450c31",
+    "module": [
+      "ProjectMercury/ProjectMercuryRedstone.so",
+      "ProjectMercury/Mercury_LC5.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/04 Friendship 7 - Earth orbit.scn",
+    "scenario_sha256": "9d715145699aef958fde5344735da57d1b3c4ee487262e91f9ecf8ca593d6f2a",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/05 Friendship 7 - before retrosequence.scn",
+    "scenario_sha256": "f940c4f7ed904e48ff7b4d9dfda5a869e671c80e3ae65716b375fba016510b77",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/06 Friendship 7 - splashdown.scn",
+    "scenario_sha256": "347dde3912b165879e10a975cdb43bb8259799ef4950fe9626abc2d08a5747da",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/07 Aurora 7 - Earth orbit.scn",
+    "scenario_sha256": "974f11a9d9150ba4be0ff0b59fd1e059ec6083a79fe11a1ce90898a2ce135ddf",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/08 Sigma 7 - Earth orbit.scn",
+    "scenario_sha256": "2a94e49ddd74ecc2292b4d4df57d6c052097cc06b24d4d506b9b702782e275c0",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  },
+  {
+    "scenario": "resources/Scenarios/Mercury - Native Linux Saves/09 Faith 7 - Earth orbit.scn",
+    "scenario_sha256": "d106ad05f33a1ecf6a0907b7aacaf44356be6c392f113f5f08b73a7c11c7430e",
+    "module": [
+      "ProjectMercury/ProjectMercuryAtlas.so",
+      "ProjectMercury/Mercury_LC14.so"
+    ],
+    "interactive": true
+  }
+]

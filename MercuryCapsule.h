@@ -3,7 +3,7 @@
 #include <time.h> // for seed in random function
 #include "VirtualCockpit.h"
 #include "ProjectMercuryGeneric.h"
-#include "..\..\Sound\OrbiterSound_SDK\VESSELSOUND_SDK\ShuttlePB_project\OrbiterSoundSDK50.h"
+#include "Native/MercurySound.h"
 
 // ==============================================================
 //				Header file for Mercury Capsule.
@@ -1425,7 +1425,7 @@ void ProjectMercury::DeployLandingBag(void)
 		landingBagMoving = true;
 		landingBagProgress = 0.0;
 
-		Landingbag = AddMesh(landingbag, &(MERCURY_OFS_LANDBAG - MERCURY_OFS_CAPSULE));
+		Landingbag = MercuryAddMesh(*this, landingbag, MERCURY_OFS_LANDBAG - MERCURY_OFS_CAPSULE);
 		DefineLandingBagAnimation();
 	}
 }
@@ -1686,11 +1686,11 @@ inline void ProjectMercury::MercuryGenericConstructor(void)
 	CGshifted = false;
 
 	// Create random seed. Multiply with handle int, as two vessels created at same time (two capsules spawned at scenario start) will create same seed, and thus same failure.
-	int timeSeed = (int)time(NULL);
-	int handleSeed = (int)GetHandle();
+	unsigned timeSeed = static_cast<unsigned>(time(NULL));
+	unsigned handleSeed = static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(GetHandle()));
 	UINT seed = UINT(timeSeed * handleSeed);
 	srand(seed);
-	oapiWriteLogV("Vessel random function seeds: time %i, handle %i, combined %i", timeSeed, handleSeed, seed);
+	oapiWriteLogV("Vessel random function seeds: time %u, handle %u, combined %u", timeSeed, handleSeed, seed);
 
 
 	//panelDynamicTexture = NULL; // debug

@@ -16,11 +16,11 @@
 #define ORBITER_MODULE
 #define VESSELVER VESSEL4
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 #include "Scout.h"
-#include "..\FunctionsForOrbiter2016.h"
-#include "..\ProjectMercuryGeneric.h"
+#include "../FunctionsForOrbiter2016.h"
+#include "../ProjectMercuryGeneric.h"
 #include <time.h> // for seed in random function
 
 
@@ -197,7 +197,7 @@ void ProjectMercury::clbkSetClassCaps(FILEHANDLE cfg)
 	Skirt[2] = AddMesh(skirt[2], &STAGE3_OFFSET);
 	Skirt[1] = AddMesh(skirt[1], &STAGE3_OFFSET);
 	Skirt[0] = AddMesh(skirt[0], &STAGE2_OFFSET);
-	Fairing[1] = AddMesh(fairing[1], &FlipX(FAIRING_OFFSET));
+	Fairing[1] = MercuryAddMesh(*this, fairing[1], FlipX(FAIRING_OFFSET));
 	Fairing[0] = AddMesh(fairing[0], &FAIRING_OFFSET);
 
 	padAttach = CreateAttachment(true, STAGE1_ENGINE_POS, _V(0, -1, 0), _V(0, 0, 1), "PAD", false);

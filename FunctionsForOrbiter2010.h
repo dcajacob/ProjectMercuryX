@@ -1,10 +1,20 @@
 #pragma once
 
+#ifndef MERCURY_NATIVE_ORBITER
 int FRAME_HORIZON = 0;
+#endif
 
 void ProjectMercury::VersionDependentTouchdown(VECTOR3 touch1, VECTOR3 touch2, VECTOR3 touch3, VECTOR3 touch4, double stiff, double damp, double mu)
 {
-	SetTouchdownPoints(touch1, touch2, touch3);
+#ifdef MERCURY_NATIVE_ORBITER
+    const TOUCHDOWNVTX points[] = {
+        {touch1, stiff, damp, mu, mu}, {touch2, stiff, damp, mu, mu},
+        {touch3, stiff, damp, mu, mu}, {touch4, stiff, damp, mu, mu}
+    };
+    SetTouchdownPoints(points, 4);
+#else
+    SetTouchdownPoints(touch1, touch2, touch3);
+#endif
 }
 
 inline void ProjectMercury::VersionDependentPanelClick(int id, const RECT& pos, int texidx, int draw_event, int mouse_event, PANELHANDLE hPanel, const RECT& texpos, int bkmode)
@@ -46,7 +56,11 @@ inline double ProjectMercury::GetAnimation(UINT anim)
 
 inline void ProjectMercury::GetGroundspeedVector(int frame, VECTOR3& v)
 {
+	#ifdef MERCURY_NATIVE_ORBITER
+	oapiGetAirspeedVector(GetHandle(), static_cast<REFFRAME>(frame), &v);
+#else
 	oapiGetAirspeedVector(GetHandle(), &v);
+#endif
 }
 
 inline double ProjectMercury::length2(VECTOR3 vec)
@@ -56,7 +70,11 @@ inline double ProjectMercury::length2(VECTOR3 vec)
 
 inline void ProjectMercury::GetAirspeedVector(int frame, VECTOR3& v)
 {
+	#ifdef MERCURY_NATIVE_ORBITER
+	oapiGetAirspeedVector(GetHandle(), static_cast<REFFRAME>(frame), &v);
+#else
 	oapiGetAirspeedVector(GetHandle(), &v);
+#endif
 }
 
 

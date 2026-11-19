@@ -9,3 +9,6 @@ The file and folder layout may seem like a mess, but this is how it works:
 - Atlas configuration in MercuryAtlas\MercuryAtlas.cpp and \MercuryAtlas.h
 - All smaller unmanned components have their own single .cpp file, but the code is similar with eachother and main Redstone and Atlas files. 
 - Excecutable for calculating launch heading and inclination for base targeting in LaunchAzimuthProgram\LaunchAzimuthTool.cpp.
+
+Native cross-platform engine integration and Linux OpenGL build instructions:
+[Native/README.md](Native/README.md).

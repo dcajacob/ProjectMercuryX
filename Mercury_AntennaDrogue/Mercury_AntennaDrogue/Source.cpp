@@ -5,7 +5,7 @@
 #define STRICT
 #define ORBITER_MODULE
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 const double MERCURY_LENGTH_ANTHOUSE = 0.687;
 const double  MERCURY_CHUTE_DROGUE = 3.0;
@@ -48,7 +48,7 @@ private:
 	/*const*/ double drogueLevel = 1.0; // debug, orbiter2010 orbiter2016
 };
 
-#include "..\..\FunctionsForOrbiter2010.h"
+#include "../../FunctionsForOrbiter2010.h"
 
 // ==============================================================
 // API interface

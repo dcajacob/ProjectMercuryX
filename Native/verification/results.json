@@ -1,0 +1,289 @@
+{
+  "platform": "native Linux x86-64 OpenGL",
+  "wine": false,
+  "test_audio": "private PulseAudio null sink at 5%",
+  "engine_sha256": "00743721eabc4efa6573a1214ffee3263fe887c188845ce05140ad1035834e16",
+  "vessel_library_sha256": "648f3df986aa9b9ac509eb9cb64d9879c3c029beda3d99ee2d9abc75c0cfb53b",
+  "opengl_sha256": "5fe9fb3441adc41ed136620de934097ce030b481de8a7388dc062a07e8af816e",
+  "xrsound_sha256": "df5e025fc0dccacb3f082eb94641179f0a23c327e3000369d0b09db42bbc861c",
+  "flight_replays": [
+    {
+      "case": "freedom7-launch",
+      "ship": "MR-3",
+      "phase": "ascent",
+      "result": "passed",
+      "samples": 4801,
+      "simulated_seconds": 300.0,
+      "maximum_altitude_km": 167.55782755833678,
+      "final_altitude_m": 167557.82755833678,
+      "final_airspeed_mps": 1435.1221786058084,
+      "final_ground_contact": false,
+      "input_sha256": "430a64e4fa81dee65dd4d2814f3605f158aecfae365a74f16ee3feb9635e122c",
+      "replay_sha256": "95ec017d5b8cc0ee37184a799e4970a049c0762011efe252bd47312d35bd0d1e",
+      "save_sha256": "78a2fb5846050c5d48032621a4c957f47c758c1a1d0e56c186ce3331994e89e0"
+    },
+    {
+      "case": "freedom7-reentry",
+      "ship": "MR-3",
+      "phase": "recovery",
+      "result": "passed",
+      "samples": 19201,
+      "simulated_seconds": 1200.0,
+      "maximum_altitude_km": 190.05922583662905,
+      "final_altitude_m": 0.5690826401114464,
+      "final_airspeed_mps": 0.2504604587023211,
+      "final_ground_contact": true,
+      "input_sha256": "78a2fb5846050c5d48032621a4c957f47c758c1a1d0e56c186ce3331994e89e0",
+      "replay_sha256": "0cbe678737cb352292c324d62fd926721e7052cffcaac68fcc2c7d980693c065",
+      "save_sha256": "2dca63095c23365e7e8428095b9f5a7d7d192a9bd30400ccd0c4673d12413c1f",
+      "maximum_reentry_g": 11.2
+    },
+    {
+      "case": "libertybell7-flight",
+      "ship": "MR-4",
+      "phase": "recovery",
+      "result": "passed",
+      "samples": 24001,
+      "simulated_seconds": 1500.0,
+      "maximum_altitude_km": 192.7587132506212,
+      "final_altitude_m": 0.5690825348719954,
+      "final_airspeed_mps": 0.45229702607736855,
+      "final_ground_contact": true,
+      "input_sha256": "8b67a117e1006d0f348cc160ad3afbc4323f9485c0b99dabb0126c307d8b54c3",
+      "replay_sha256": "7d0de14197e6e57d3b39c22ff064403198a57225040a47c399156ccbe0772689",
+      "save_sha256": "c0760ad70a9542316d3b9d5bc006909ea12c8ae05d9c82b2d6b15c9100450c31",
+      "maximum_reentry_g": 11.3
+    },
+    {
+      "case": "friendship7-launch",
+      "ship": "MA-6",
+      "phase": "insertion",
+      "result": "passed",
+      "samples": 14401,
+      "simulated_seconds": 900.0,
+      "maximum_altitude_km": 173.5247067683693,
+      "final_altitude_m": 173524.7067683693,
+      "final_airspeed_mps": 7432.285056213774,
+      "final_ground_contact": false,
+      "input_sha256": "3841000edbe135de94f1b68b9c6fbf43dd08e7257b1e4bb45f3a01406353c90f",
+      "replay_sha256": "2836e62c015204c3a1a8a6c4734db05aded13990c2ce3c9dec5753abad38d550",
+      "save_sha256": "9d715145699aef958fde5344735da57d1b3c4ee487262e91f9ecf8ca593d6f2a",
+      "perigee_km": 160.94711801445112,
+      "apogee_km": 292.4281540667452
+    },
+    {
+      "case": "friendship7-three-orbits",
+      "ship": "MA-6",
+      "phase": "coast",
+      "result": "passed",
+      "samples": 120801,
+      "simulated_seconds": 15100.0,
+      "maximum_altitude_km": 292.3333908547759,
+      "final_altitude_m": 167013.334205796,
+      "final_airspeed_mps": 7441.92428563124,
+      "final_ground_contact": false,
+      "input_sha256": "9d715145699aef958fde5344735da57d1b3c4ee487262e91f9ecf8ca593d6f2a",
+      "replay_sha256": "a729798095e2e67f80aaa4340e859d19414f8172bf19344aa5aed0086a390b8f",
+      "save_sha256": "f940c4f7ed904e48ff7b4d9dfda5a869e671c80e3ae65716b375fba016510b77",
+      "perigee_km": 160.71364752227814,
+      "apogee_km": 291.5874022714235
+    },
+    {
+      "case": "friendship7-retro-entry",
+      "ship": "MA-6",
+      "phase": "recovery",
+      "result": "passed",
+      "samples": 40001,
+      "simulated_seconds": 2500.0,
+      "maximum_altitude_km": 167.0133337335512,
+      "final_altitude_m": 1.0689841881394386,
+      "final_airspeed_mps": 3.6438079524895097,
+      "final_ground_contact": true,
+      "input_sha256": "f940c4f7ed904e48ff7b4d9dfda5a869e671c80e3ae65716b375fba016510b77",
+      "replay_sha256": "f75e0a7f084f6410e9518e2cdd3f9f82035fd4b8f3b59209398e086aad0ae0cc",
+      "save_sha256": "347dde3912b165879e10a975cdb43bb8259799ef4950fe9626abc2d08a5747da",
+      "maximum_reentry_g": 7.7
+    },
+    {
+      "case": "aurora7-launch",
+      "ship": "MA-7",
+      "phase": "insertion",
+      "result": "passed",
+      "samples": 14401,
+      "simulated_seconds": 900.0,
+      "maximum_altitude_km": 173.34597869877797,
+      "final_altitude_m": 173345.97869877797,
+      "final_airspeed_mps": 7432.873591542517,
+      "final_ground_contact": false,
+      "input_sha256": "1097a92d43a6de28665261ecc593515a7334559ca80ab60f74dbcee4715ea3a9",
+      "replay_sha256": "2836e62c015204c3a1a8a6c4734db05aded13990c2ce3c9dec5753abad38d550",
+      "save_sha256": "974f11a9d9150ba4be0ff0b59fd1e059ec6083a79fe11a1ce90898a2ce135ddf",
+      "perigee_km": 160.8502573720375,
+      "apogee_km": 290.7719699369669
+    },
+    {
+      "case": "sigma7-launch",
+      "ship": "MA-8",
+      "phase": "insertion",
+      "result": "passed",
+      "samples": 14401,
+      "simulated_seconds": 900.0,
+      "maximum_altitude_km": 175.7337555070836,
+      "final_altitude_m": 175733.7555070836,
+      "final_airspeed_mps": 7437.24827114146,
+      "final_ground_contact": false,
+      "input_sha256": "af9a2d97a42b62ea67171a1498c94ef242c3dfb31a7421f83360c557c1e502db",
+      "replay_sha256": "2836e62c015204c3a1a8a6c4734db05aded13990c2ce3c9dec5753abad38d550",
+      "save_sha256": "2a94e49ddd74ecc2292b4d4df57d6c052097cc06b24d4d506b9b702782e275c0",
+      "perigee_km": 160.98072718463746,
+      "apogee_km": 315.2691267783735
+    },
+    {
+      "case": "faith7-launch",
+      "ship": "MA-9",
+      "phase": "insertion",
+      "result": "passed",
+      "samples": 14401,
+      "simulated_seconds": 900.0,
+      "maximum_altitude_km": 173.99699913172984,
+      "final_altitude_m": 173996.99913172983,
+      "final_airspeed_mps": 7418.903664271078,
+      "final_ground_contact": false,
+      "input_sha256": "454fc6b19bccedece45c27832368a8f065ad6056633507d19f2bddd2712971bf",
+      "replay_sha256": "2836e62c015204c3a1a8a6c4734db05aded13990c2ce3c9dec5753abad38d550",
+      "save_sha256": "d106ad05f33a1ecf6a0907b7aacaf44356be6c392f113f5f08b73a7c11c7430e",
+      "perigee_km": 161.37655864396132,
+      "apogee_km": 293.4049297161037
+    }
+  ],
+  "limitations": [
+    "Historical accuracy and Windows numerical parity are not yet qualified.",
+    "Aurora 7, Sigma 7 and Faith 7 are verified through orbital insertion, not their complete missions.",
+    "Little Joe and Scout modules build; their flight sequences are not yet qualified.",
+    "Windows and macOS add-on builds are not yet tested."
+  ],
+  "launcher_checks": [
+    {
+      "scenario": "1. Launch of Freedom 7.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 1.4499996788799763,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Project Mercury/Historical launch scenarios/1. Launch of Freedom 7.scn"
+    },
+    {
+      "scenario": "2. Launch of Liberty Bell 7.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.18333171028643847,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Project Mercury/Historical launch scenarios/2. Launch of Liberty Bell 7.scn"
+    },
+    {
+      "scenario": "3. Launch of Friendship 7.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.21666549146175385,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Project Mercury/Historical launch scenarios/3. Launch of Friendship 7.scn"
+    },
+    {
+      "scenario": "4. Launch of Aurora 7.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.21666549146175385,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Project Mercury/Historical launch scenarios/4. Launch of Aurora 7.scn"
+    },
+    {
+      "scenario": "5. Launch of Sigma 7.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.1999989151954651,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Project Mercury/Historical launch scenarios/5. Launch of Sigma 7.scn"
+    },
+    {
+      "scenario": "6. Launch of Faith 7.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.09999945759773254,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Project Mercury/Historical launch scenarios/6. Launch of Faith 7.scn"
+    },
+    {
+      "scenario": "01 Freedom 7 - ascent.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.1999989151954651,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/01 Freedom 7 - ascent.scn"
+    },
+    {
+      "scenario": "02 Freedom 7 - splashdown.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.2333320677280426,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/02 Freedom 7 - splashdown.scn"
+    },
+    {
+      "scenario": "03 Liberty Bell 7 - splashdown.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.18333233892917633,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/03 Liberty Bell 7 - splashdown.scn"
+    },
+    {
+      "scenario": "04 Friendship 7 - Earth orbit.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.18333233892917633,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/04 Friendship 7 - Earth orbit.scn"
+    },
+    {
+      "scenario": "05 Friendship 7 - before retrosequence.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.19999828655272722,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/05 Friendship 7 - before retrosequence.scn"
+    },
+    {
+      "scenario": "06 Friendship 7 - splashdown.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.18333233892917633,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/06 Friendship 7 - splashdown.scn"
+    },
+    {
+      "scenario": "07 Aurora 7 - Earth orbit.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.2333320677280426,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/07 Aurora 7 - Earth orbit.scn"
+    },
+    {
+      "scenario": "08 Sigma 7 - Earth orbit.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.18333233892917633,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/08 Sigma 7 - Earth orbit.scn"
+    },
+    {
+      "scenario": "09 Faith 7 - Earth orbit.scn",
+      "result": "passed",
+      "resized": "1180x720",
+      "simulated_seconds": 0.1999989151954651,
+      "renderer": "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "path": "resources/Scenarios/Mercury - Native Linux Saves/09 Faith 7 - Earth orbit.scn"
+    }
+  ],
+  "module_count": 15,
+  "asset_archive_sha256": "b35f077878c800ba49e6b4ab40a76544b190a754349166ee1ec7ec86b540cbc8"
+}

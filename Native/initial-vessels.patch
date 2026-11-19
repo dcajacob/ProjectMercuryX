@@ -1,0 +1,27 @@
+--- a/OVP/OGLClient/Scene.cpp
++++ b/OVP/OGLClient/Scene.cpp
+@@ -110,6 +110,10 @@
+ 
+ void Scene::Initialise ()
+ {
++    // Initial vessels predate creation notifications. Render their finalized
++    // meshes on the first frame, including launch pads in an external view.
++    for (oapi::UInt32 i=0;i<oapiGetVesselCount();++i)
++        pendingVessels.push_back(oapiGetVesselByIndex(i));
+ 	OBJHANDLE hSun = oapiGetGbodyByIndex(0); // generalise later
+ 	light = new OGLLight (hSun, OGLLight::Directional, this, 0);
+ 	light->light.enabled = 1;
+@@ -297,10 +301,10 @@
+ void Scene::Update ()
+ {
+ 	cam->Update (); // update camera parameters
+-	// An internal view needs its focus visual on the first frame. The round-
+-	// robin check below can otherwise leave the stock cockpit absent until
++	// Every view needs its focus visual on the first frame. The round-
++	// robin check below can otherwise leave the focused vessel absent until
+ 	// every Solar System body has been visited (over forty frames in Sol).
+-	if(oapiCameraInternal())CheckVisual(oapiGetFocusObject());
++	CheckVisual(oapiGetFocusObject());
+ 	// Creation notifications precede engine PostCreation/finalization. Register
+ 	// immediately, then refresh visibility with the finalized body/current camera.
+ 	for (auto body:pendingVessels) CheckVisual(body);

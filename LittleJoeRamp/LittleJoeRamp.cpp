@@ -6,7 +6,7 @@
 #define ORBITER_MODULE
 #define VESSELVER VESSEL3
 
-#include "orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 const double LC_MASS = 1e5; // guesstimate
 const double LC_COG = 2.33;
@@ -95,7 +95,7 @@ private:
 	//enum towerstaus { CLOSE, MOVEAWAY, MOVECLOSE, AWAY } TowerInProcess;
 };
 
-#include "..\FunctionsForOrbiter2010.h"
+#include "../FunctionsForOrbiter2010.h"
 
 ProjectMercury::ProjectMercury(OBJHANDLE hVessel, int flightmodel) : VESSELVER(hVessel, flightmodel)
 {

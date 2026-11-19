@@ -6,7 +6,7 @@
 #define ORBITER_MODULE
 #define VESSELVER VESSEL3
 
-#include "Orbitersdk.h"
+#include "MercuryOrbiter.h"
 
 const double ATLAS_CORE_LENGTH = 20.9;
 const double ATLAS_BOOSTER_LENGTH = 3.86;
@@ -115,7 +115,7 @@ private:
 	int LineSpacing = 0;
 };
 
-#include "..\..\FunctionsForOrbiter2010.h"
+#include "../../FunctionsForOrbiter2010.h"
 
 ProjectMercury::ProjectMercury(OBJHANDLE hVessel, int flightmodel) : VESSELVER(hVessel, flightmodel)
 {
