@@ -22,7 +22,7 @@ cmake -S "$source_dir/Src/Orbiter/Production" -B "$engine" "${base[@]}" \
     -DORBITER_BUILD_NATIVE_VESSELS=ON -DORBITER_BUILD_NATIVE_CELESTIAL_MODULES=ON \
     -DORBITER_BUILD_NATIVE_COCKPIT=ON -DORBITER_MATH_FORCE_SSE2=ON -DBUILD_TESTING=OFF \
     -DORBITER_NATIVE_UI_ARCHIVE="$work/deps/imgui.zip"
-cmake --build "$engine" --target orbiter-production orbiter_native_spice \
+cmake --build "$engine" --target orbiter-production native_lua_inline native_lua_mfd orbiter_native_spice \
     orbiter_native_EarthAtmJ71G orbiter_native_EarthAtm2006 orbiter_native_MarsAtm2006
 cmake -S "$source_dir/Src/Celbody/NativeEphemeris" -B "$work/ephemeris" "${base[@]}" -DORBITER_ENGINE_BUILD="$engine"
 cmake --build "$work/ephemeris"
@@ -35,6 +35,8 @@ cmake -S "$repo" -B "$work/mercury" "${base[@]}" \
     -DORBITER_NATIVE_SOURCE_DIR="$source_dir" -DORBITER_NATIVE_BUILD_DIR="$engine"
 cmake --build "$work/mercury"
 python3 "$repo/Native/install-runtime.py" "$engine" "$work/mercury" "$runtime"
+mkdir -p "$runtime/resources/Modules"
+cp -a "$source_dir/OVP/OGLClient/shaders" "$runtime/resources/Modules/OGLClient"
 cp "$work/launcher/orbiter-launchpad" "$runtime/engine/"
 install -m755 "$repo/Native/ci/run-orbiter" "$runtime/engine/run-orbiter"
 test "$(find "$runtime/engine/NativeModules/Vessel/ProjectMercury" -name '*.so' | wc -l)" -eq 15

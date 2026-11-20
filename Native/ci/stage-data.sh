@@ -10,7 +10,7 @@ fetch() {
 }
 inputs=https://github.com/dcajacob/NASSP/releases/download/native-linux-ci-inputs-v1
 fetch "$inputs/nassp-native-ci-inputs-v1.tar.zst" fixture.tar.zst 26d5891ea54a01ab8d007bed3ab2e9f5ed46ff8cd315921c57ca0e334faf37bd
-tar --zstd --exclude='./runtime/engine' --exclude='*ProjectApollo*' --exclude='*Apollo*' \
+tar --zstd --exclude='./runtime/engine' --exclude='./runtime/resources/Modules' --exclude='*ProjectApollo*' --exclude='*Apollo*' \
     -xf fixture.tar.zst ./runtime
 rm fixture.tar.zst
 # The template enables Apollo MFDs. Mercury uses the automatically loaded XRSound plug-in.

@@ -47,7 +47,7 @@ jobs:
           git fetch --no-tags --depth=1 origin f725194209634f7fd5d1d44d426cfa9b5e303e37
           cd ..
           bash Native/ci/build.sh "$PWD/orbiter-source" "$RUNNER_TEMP/build"
-          tar -C "$RUNNER_TEMP/build/runtime" --zstd -cf mercury-engine.tar.zst engine
+          tar -C "$RUNNER_TEMP/build/runtime" --zstd -cf mercury-engine.tar.zst engine resources/Modules
       - uses: actions/upload-artifact@v7
         with:
           name: mercury-native-engine
