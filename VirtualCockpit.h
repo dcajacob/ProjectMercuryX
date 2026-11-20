@@ -130,7 +130,7 @@ bool ProjectMercury::clbkLoadPanel2D(int id, PANELHANDLE hPanel, DWORD viewW, DW
 		// Click to set TowJet, CapSep, RetSeq, RetJet.
 		VersionDependentPanelClick(PANEL_ID_TOWJET_BUTTON, _R(butX - butRad, towjetY - butRad, butX + butRad, towjetY + butRad), 0, PANEL_REDRAW_NEVER, PANEL_MOUSE_LBDOWN | PANEL_MOUSE_LBPRESSED, hPanel, _R(0, 0, 0, 0), NULL);
 		VersionDependentPanelClick(PANEL_ID_CAPSEP_BUTTON, _R(butX - butRad, capsepY - butRad, butX + butRad, capsepY + butRad), 0, PANEL_REDRAW_NEVER, PANEL_MOUSE_LBDOWN | PANEL_MOUSE_LBPRESSED, hPanel, _R(0, 0, 0, 0), NULL);
-		VersionDependentPanelClick(PANEL_ID_RETSEQ_BUTTON, _R(butX - butRad, retseqY - butRad, butX + butRad, retseqY + butRad), 0, PANEL_REDRAW_NEVER, PANEL_MOUSE_LBDOWN | PANEL_MOUSE_LBPRESSED, hPanel, _R(0, 0, 0, 0), NULL);
+		VersionDependentPanelClick(PANEL_ID_RETSEQ_BUTTON, _R(butX - butRad, retseqY - butRad, butX + butRad, retseqY + butRad), 0, PANEL_REDRAW_NEVER, PANEL_MOUSE_LBDOWN | PANEL_MOUSE_LBUP, hPanel, _R(0, 0, 0, 0), NULL);
 		VersionDependentPanelClick(PANEL_ID_RETJET_BUTTON, _R(butX - butRad, retjetY - butRad, butX + butRad, retjetY + butRad), 0, PANEL_REDRAW_NEVER, PANEL_MOUSE_LBDOWN | PANEL_MOUSE_LBPRESSED, hPanel, _R(0, 0, 0, 0), NULL);
 		VersionDependentPanelClick(PANEL_ID_TIMZER_BUTTON, _R(1875 - butRad, 340 - butRad, 1875 + butRad, 340 + butRad), 0, PANEL_REDRAW_NEVER, PANEL_MOUSE_LBDOWN | PANEL_MOUSE_LBPRESSED, hPanel, _R(0, 0, 0, 0), NULL);
 
@@ -318,6 +318,9 @@ inline bool ProjectMercury::clbkPanelMouseEvent(int id, int event, int mx, int m
 		separateCapsuleAction = true;
 		return true;
 	case PANEL_ID_RETSEQ_BUTTON:
+		// A quick click may deliver only the release to the panel callback.
+		// Latch the first edge so holding or releasing cannot restart the timer.
+		if (engageRetro) return true;
 		SetIndicatorButtonStatus(indicatorButtonFirstGroup + 2, 1);
 		indicatorButtonPressTime[2] = simt;
 

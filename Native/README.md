@@ -88,6 +88,17 @@ the normal GUI, verifies native modules, resizes, resumes, quicksaves and exits.
 
 See `verification/results.json` for the measured qualification results and scope.
 
+To test the RETRO SEQ cockpit button with the verified Friendship 7 pre-retro
+save, run the following command with a fresh output directory. It checks a
+same-frame click, a two-second hold, and a click outside the button against
+the three retro motor cover releases.
+
+```sh
+python3 Native/verification/retro-panel.py "$PACKAGE" \
+  "$PACKAGE/resources/Scenarios/Mercury - Native Linux Saves/05 Friendship 7 - before retrosequence.scn" \
+  "$CHECKS/retro-panel"
+```
+
 
 The initial qualification passed **9 flight replays and 15 launcher checks**:
 
