@@ -23,7 +23,9 @@ for attempt in {1..50}; do
 done
 pactl info > "$case_dir/audio-server.txt" || { cat "$case_dir/pulseaudio.log"; exit 1; }
 pactl set-sink-volume "$PULSE_SINK" 5%
-pactl get-sink-volume "$PULSE_SINK" >> "$case_dir/audio-server.txt"
+volume=$(LC_ALL=C pactl get-sink-volume "$PULSE_SINK")
+printf '%s\n' "$volume" >> "$case_dir/audio-server.txt"
+[[ $(grep -oE '[0-9]+%' <<< "$volume" | sort -u) == 5% ]] || { echo "Unexpected sink volume: $volume" >&2; exit 1; }
 if [[ "$ticks" == launcher ]]; then
     env -u WAYLAND_DISPLAY -u LD_LIBRARY_PATH xvfb-run -a -s '-screen 0 1600x1000x24 +extension GLX' \
         python3 "$script_dir/launchpad.py" "$runtime" "$case_dir" "${MERCURY_LAUNCHER_MANIFEST:-$script_dir/launcher-manifest.json}"

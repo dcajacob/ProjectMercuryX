@@ -1,0 +1,118 @@
+name: Native Linux OpenGL
+on:
+  pull_request:
+    branches: [codex/native-linux-opengl]
+  push:
+    branches: [codex/native-linux-opengl]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: mercury-opengl-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build Orbiter, OpenGL, XRSound and 15 Mercury vessels
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.04
+    timeout-minutes: 60
+    steps:
+      - name: Install native build tools
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential git cmake ninja-build pkg-config curl python3 ca-certificates zstd \
+            qt6-base-dev libgl-dev libglu1-mesa-dev zlib1g-dev xorg-dev \
+            libwayland-dev wayland-protocols libxkbcommon-dev
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: dcajacob/orbiter-cross-platform
+          ref: f37eeee6ec8a757c9daa07fff0eeeec704d1e655
+          path: orbiter-source
+          persist-credentials: false
+      - name: Build a matching native runtime from source
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/orbiter-source"
+          cd orbiter-source
+          git fetch --no-tags --depth=2 origin d60f20787d39936aba350f7ae27d280ce87b6cfb
+          git fetch --no-tags --depth=1 origin f725194209634f7fd5d1d44d426cfa9b5e303e37
+          cd ..
+          bash Native/ci/build.sh "$PWD/orbiter-source" "$RUNNER_TEMP/build"
+          tar -C "$RUNNER_TEMP/build/runtime" --zstd -cf mercury-engine.tar.zst engine
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mercury-native-engine
+          path: mercury-engine.tar.zst
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  flights:
+    name: Nine flight replays, cockpit retrosequence and launcher
+    needs: build
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.04
+    timeout-minutes: 60
+    steps:
+      - name: Install software OpenGL, virtual desktop and audio
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git ca-certificates curl unzip zstd python3 python3-pil libgl1-mesa-dri \
+            libglx-mesa0 libglu1-mesa libegl1 libopengl0 libqt6widgets6 qt6-qpa-plugins \
+            libxcb-cursor0 libxtst6 fonts-dejavu-core xvfb xauth x11-utils pulseaudio pulseaudio-utils
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: mercury-native-engine
+      - name: Stage verified assets and the runtime from this build
+        run: |
+          mkdir -p "$RUNNER_TEMP/mercury/runtime" results
+          bash Native/ci/stage-data.sh "$RUNNER_TEMP/mercury"
+          tar --zstd -xf mercury-engine.tar.zst -C "$RUNNER_TEMP/mercury/runtime"
+          useradd --create-home mercury-ci
+          chown -R mercury-ci "$RUNNER_TEMP/mercury" results
+      - name: Fly and verify the six missions and their linked saves
+        run: |
+          runtime="$RUNNER_TEMP/mercury/runtime"
+          runuser -u mercury-ci -- python3 Native/verification/run-suite.py "$runtime" "$PWD/results/flights"
+          runuser -u mercury-ci -- python3 Native/package-runtime.py "$runtime" "$PWD/results/flights" "$RUNNER_TEMP/mercury/package"
+          cp "$RUNNER_TEMP/mercury/package/qualification/results.json" results/flight-results.json
+      - name: Test quick, held and off-button cockpit clicks on Friendship 7
+        run: |
+          set -o pipefail
+          runuser -u mercury-ci -- python3 Native/verification/retro-panel.py "$RUNNER_TEMP/mercury/runtime" \
+            "$PWD/results/flights/friendship7-three-orbits/saved.scn" "$PWD/results/retro-panel" | tee results/retro-panel.log
+      - name: Launch six original scenarios and nine generated saves
+        run: |
+          package="$RUNNER_TEMP/mercury/package"
+          runuser -u mercury-ci -- env MERCURY_LAUNCHER_MANIFEST="$package/qualification/launcher-manifest.json" \
+            bash Native/verification/run-session.sh "$package" "$PWD/results/launcher" launcher
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mercury-flight-evidence
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            results/flight-results.json
+            results/retro-panel.log
+            results/launcher/*.json
+            results/**/audio-server.txt
+            results/**/console.log
+            results/**/XRSound.log
+            results/**/launcher.log
+            results/**/orbiter-session.log
+            results/**/native-window.json
+            results/**/replay.csv
