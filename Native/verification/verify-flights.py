@@ -8,6 +8,7 @@ import math
 import re
 import sys
 from orbital_returns import PRE_RETRO_SECONDS, RETROSEQUENCE_MET
+from runtime_provenance import runtime_hashes, verify_record
 runtime, root, destination = map(Path,sys.argv[1:])
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 mu=3.986004418e14
@@ -84,6 +85,8 @@ cases=[('freedom7-launch','MR-3','ascent'),('freedom7-reentry','MR-3','recovery'
        ('aurora7-launch','MA-7','insertion'),('sigma7-launch','MA-8','insertion'),('faith7-launch','MA-9','insertion')]
 for mission,ship in [('aurora7','MA-7'), ('sigma7','MA-8'), ('faith7','MA-9')]:
     cases.extend([(f'{mission}-coast',ship,'coast'), (f'{mission}-retro-entry',ship,'recovery')])
+build_hashes = runtime_hashes(runtime)
+flight_hashes = {name: verify_record(root/name, build_hashes) for name, _, _ in cases}
 results=[]
 for name,ship,phase in cases:
     case=root/name
@@ -121,8 +124,8 @@ for name,ship,phase in cases:
             'simulated_seconds':float(last['seconds'])-float(first['seconds']),
             'maximum_altitude_km':maximum/1000,'final_altitude_m':float(last['altitude_mean']),
             'final_airspeed_mps':float(last['airspeed']), 'final_ground_contact':last['ground']=='1',
-            'input_sha256':sha(case/'input.scn'),'replay_sha256':sha(case/'replay.csv'),
-            'save_sha256':sha(case/'saved.scn')}
+            'input_sha256':flight_hashes[name]['input.scn'],'replay_sha256':flight_hashes[name]['replay.csv'],
+            'save_sha256':flight_hashes[name]['saved.scn']}
     if phase in ['insertion','coast']:
         measured=orbit(last)
         assert 140<measured['perigee_km']<190 and 200<measured['apogee_km']<350,(name,measured)
@@ -148,10 +151,11 @@ for name,ship,phase in cases:
     else:assert 100000<float(last['altitude_mean'])<220000,name
     results.append(result)
 report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'private PulseAudio null sink at 5%',
-        'engine_sha256':sha(runtime/'engine/orbiter-production'),
-        'vessel_library_sha256':sha(runtime/'engine/liborbiter_production_vessels.so'),
-        'opengl_sha256':sha(runtime/'engine/NativeModules/Graphics/OGLClient.so'),
-        'xrsound_sha256':sha(runtime/'engine/NativeModules/Plugin/XRSound.so'),
+        'engine_sha256':build_hashes['engine/orbiter-production'],
+        'vessel_library_sha256':build_hashes['engine/liborbiter_production_vessels.so'],
+        'opengl_sha256':build_hashes['engine/NativeModules/Graphics/OGLClient.so'],
+        'xrsound_sha256':build_hashes['engine/NativeModules/Plugin/XRSound.so'],
+        'runtime_sha256':build_hashes,
         'flight_replays':results,
         'limitations':['Historical accuracy and Windows numerical parity are not yet qualified.',
                        'The orbital returns use nominal spacecraft systems. Historical failures and recovery-site accuracy are unqualified.',

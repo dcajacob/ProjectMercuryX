@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+#include <cstdio>
 #include <time.h> // for seed in random function
 #include "VirtualCockpit.h"
 #include "ProjectMercuryGeneric.h"
@@ -672,6 +674,27 @@ void ProjectMercury::GRollAuto(double simt, double simdt)
 		SetThrusterLevel(thruster_auto_py[3], 0.0);
 }
 
+// A scenario restarts its simulation clock. Store a signed offset so a save
+// after ignition also retains the deadlines of motors 2 and 3 and pack jettison.
+static inline void WriteRetroSequence(FILEHANDLE scn, double ignitionTime, const bool (&separated)[3])
+{
+	const int covers = int(separated[0]) | (int(separated[1]) << 1) | (int(separated[2]) << 2);
+	char value[64];
+	std::snprintf(value, sizeof(value), "%.17g %d", ignitionTime - oapiGetSimTime(), covers);
+	oapiWriteScenario_string(scn, "RETROSEQUENCE", value);
+}
+
+static inline bool ReadRetroSequence(const char* value, double& ignitionTime, bool (&separated)[3])
+{
+	double remaining;
+	int covers;
+	if (std::sscanf(value, "%lf %d", &remaining, &covers) != 2 ||
+		!std::isfinite(remaining) || covers < 0 || covers > 7) return false;
+	ignitionTime = oapiGetSimTime() + remaining;
+	for (int i = 0; i < 3; ++i) separated[i] = (covers & (1 << i)) != 0;
+	return true;
+}
+
 inline void ProjectMercury::InitiateRetroSequence(void)
 {
 	engageRetro = true;
@@ -828,6 +851,20 @@ void ProjectMercury::CreateRetroRockets(void)
 	AddExhaust(thruster_retro[2], 1.8, 0.05, tex);
 	LightEmitter* retro3_light = AddPointLight(m_exhaust_pos, 20, 0.1, -0.01, 0.2, col_d, col_s, col_a);
 	retro3_light->SetIntensityRef(&RETRO_THRUST_LEVEL[2]);
+
+	// Already-fired solid motors stay lit until their saved propellant is
+	// exhausted. Their loose covers are separate vessels in the scenario.
+	if (!engageRetro || boilerplateMission) return;
+	const UINT covers[] = { Retrocover1, Retrocover2, Retrocover3 };
+	for (int i = 0; i < 3; ++i)
+	{
+		if (retroCoverSeparated[i])
+		{
+			DelMesh(covers[i]);
+			if (GetPropellantMass(retro_propellant[i]) > 0.0)
+				SetThrusterLevel(thruster_retro[i], 1.0);
+		}
+	}
 }
 
 void ProjectMercury::PrepareReentry(void)

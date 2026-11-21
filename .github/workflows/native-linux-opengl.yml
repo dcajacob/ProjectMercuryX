@@ -83,12 +83,18 @@ jobs:
           tar --zstd -xf mercury-engine.tar.zst -C "$RUNNER_TEMP/mercury/runtime"
           useradd --create-home mercury-ci
           chown -R mercury-ci "$RUNNER_TEMP/mercury" results
+      - name: Reject flight evidence from a different or unknown build
+        run: runuser -u mercury-ci -- python3 Native/verification/test-runtime-provenance.py "$RUNNER_TEMP/mercury/runtime"
       - name: Fly and verify the six missions and their linked saves
         run: |
           runtime="$RUNNER_TEMP/mercury/runtime"
           runuser -u mercury-ci -- python3 Native/verification/run-suite.py "$runtime" "$PWD/results/flights"
           runuser -u mercury-ci -- python3 Native/package-runtime.py "$runtime" "$PWD/results/flights" "$RUNNER_TEMP/mercury/package"
           cp "$RUNNER_TEMP/mercury/package/qualification/results.json" results/flight-results.json
+      - name: Reload recovery targets and an armed retrosequence
+        run: |
+          runuser -u mercury-ci -- python3 Native/verification/reload-state.py "$RUNNER_TEMP/mercury/runtime" \
+            "$PWD/results/flights" "$PWD/results/reload-state"
       - name: Test quick, held and off-button cockpit clicks on Friendship 7
         run: |
           set -o pipefail
@@ -97,8 +103,7 @@ jobs:
       - name: Launch six original scenarios and fifteen generated saves
         run: |
           package="$RUNNER_TEMP/mercury/package"
-          runuser -u mercury-ci -- env MERCURY_LAUNCHER_MANIFEST="$package/qualification/launcher-manifest.json" \
-            bash Native/verification/run-session.sh "$package" "$PWD/results/launcher" launcher
+          runuser -u mercury-ci -- bash Native/verification/run-session.sh "$package" "$PWD/results/launcher" launcher
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -107,6 +112,8 @@ jobs:
           if-no-files-found: warn
           path: |
             results/flight-results.json
+            results/reload-state/results.json
+            results/**/runtime-provenance.json
             results/retro-panel.log
             results/launcher/*.json
             results/**/audio-server.txt
