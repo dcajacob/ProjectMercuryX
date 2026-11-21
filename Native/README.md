@@ -76,6 +76,23 @@ P. Atlas includes the pad hold-down interval.
 ASCS modes, staging controls, mission targeting and manuals still apply. There is
 no new flight model or scripted trajectory correction in this port.
 
+## GitHub Actions
+
+Every pull request to `codex/native-linux-opengl` runs **Native Linux OpenGL**.
+The build uses NASSP’s pinned shared Orbiter source, applies the merged Orbiter
+`DelThruster` fix and the Mercury host integration in the CI checkout, and builds
+the matching SDK, OpenGL client, launcher, XRSound bridge and all 15 vessel modules.
+
+The flight job downloads the original Mercury distribution from the publisher,
+checks its SHA-256, and flies the nine replays listed below. The cockpit checks
+use the Friendship 7 pre-retro save produced by that run. The launcher opens the
+six original missions and all nine generated saves. Every session runs under Xvfb
+and Mesa software OpenGL with its own PulseAudio null sink verified at 5%.
+
+The Actions run publishes the measured flight results, cockpit event times,
+launcher results and audio logs in `mercury-flight-evidence`. The workflow also
+runs after a merge and can be started from the Actions tab.
+
 ## Verification
 
 `verification/run-session.sh RUNTIME CASE TICKS [STEP] [RENDER_EVERY]` replays
