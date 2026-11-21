@@ -7,6 +7,7 @@ case_dir=$(realpath "$2")
 ticks=$3
 step=${4:-.0625}
 render_every=${5:-257}
+coast_ship=${6:-}
 pulse_dir=$(mktemp -d)
 export PULSE_RUNTIME_PATH="$pulse_dir" PULSE_SERVER="unix:$pulse_dir/pulse.sock" PULSE_SINK=mercury_test
 export LIBGL_ALWAYS_SOFTWARE=1 LP_NUM_THREADS=2 QT_QPA_PLATFORM=xcb XDG_SESSION_TYPE=x11
@@ -14,7 +15,26 @@ env DBUS_SESSION_BUS_ADDRESS="unix:path=$pulse_dir/no-session-bus" pulseaudio -n
     -L "module-native-protocol-unix socket=$pulse_dir/pulse.sock" \
     -L "module-null-sink sink_name=$PULSE_SINK" > "$case_dir/pulseaudio.log" 2>&1 &
 pulse_pid=$!
-cleanup() { kill "$pulse_pid" 2>/dev/null || true; wait "$pulse_pid" 2>/dev/null || true; rm -rf "$pulse_dir"; }
+trace_pid=
+coast_dir=
+cleanup() {
+    if [[ -n "$trace_pid" ]]; then
+        kill "$trace_pid" 2>/dev/null || true
+        wait "$trace_pid" 2>/dev/null || true
+    fi
+    if [[ -n "$coast_dir" ]]; then
+        # Publish regular evidence files even if the simulator exited early.
+        mkdir -p "$case_dir/evidence"
+        if [[ -f "$coast_dir/capsule.csv" ]]; then
+            mv -T "$coast_dir/capsule.csv" "$case_dir/evidence/flight-state.csv"
+        fi
+        find "$coast_dir" -maxdepth 1 -type f -exec mv -t "$case_dir/evidence" -- {} +
+        rm -rf "$coast_dir"
+    fi
+    kill "$pulse_pid" 2>/dev/null || true
+    wait "$pulse_pid" 2>/dev/null || true
+    rm -rf "$pulse_dir"
+}
 trap cleanup EXIT
 for attempt in {1..50}; do
     pactl info >/dev/null 2>&1 && break
@@ -32,6 +52,21 @@ if [[ "$ticks" == launcher ]]; then
     exit
 fi
 cd "$case_dir"
+evidence=evidence
+if [[ -n "$coast_ship" ]]; then
+    # Up to 34 simulated hours. Keep every capsule sample and avoid filling
+    # the runner with per-tick pad, spent-stage and callback diagnostics.
+    coast_dir=$(mktemp -d "$case_dir/.coast-evidence.XXXXXXXX")
+    evidence=$coast_dir
+    for trace in application-lifecycle flight-animations flight-controls ground-math input-state \
+                 lifetime-events production-state thrust-state vessel-callbacks; do
+        ln -s /dev/null "$evidence/$trace.csv"
+    done
+    mkfifo "$evidence/flight-state.csv"
+    LC_ALL=C awk -F, -v ship="$coast_ship" 'NR == 1 || $5 == ship' \
+        "$evidence/flight-state.csv" > "$evidence/capsule.csv" &
+    trace_pid=$!
+fi
 runner=()
 engine="$runtime/engine/run-orbiter"
 limits=(--ticks "$ticks" --run)
@@ -44,4 +79,8 @@ env -u WAYLAND_DISPLAY LD_LIBRARY_PATH="$runtime/engine:$runtime/engine/native-l
     "${runner[@]}" "$engine" --assets "$runtime/resources" --data "$runtime/celestial-data" \
     --modules "$runtime/engine/NativeModules" --planets "$runtime/planet-archives" --config "$runtime/Orbiter.cfg" \
     --xrsound-assets "$runtime/resources" --scenario input.scn --save saved.scn --replay replay.csv \
-    "${limits[@]}" --fixed-step "$step" --render-every "$render_every" --evidence evidence > console.log 2>&1
+    "${limits[@]}" --fixed-step "$step" --render-every "$render_every" --evidence "$evidence" > console.log 2>&1
+if [[ -n "$trace_pid" ]]; then
+    wait "$trace_pid"
+    trace_pid=
+fi

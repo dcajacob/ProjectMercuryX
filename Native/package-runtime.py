@@ -34,6 +34,10 @@ cases=[('freedom7-launch','01 Freedom 7 - ascent.scn','ProjectMercuryRedstone','
  ('aurora7-launch','07 Aurora 7 - Earth orbit.scn','ProjectMercuryAtlas','Mercury_LC14'),
  ('sigma7-launch','08 Sigma 7 - Earth orbit.scn','ProjectMercuryAtlas','Mercury_LC14'),
  ('faith7-launch','09 Faith 7 - Earth orbit.scn','ProjectMercuryAtlas','Mercury_LC14')]
+for index, (mission, title) in enumerate([('aurora7','Aurora 7'), ('sigma7','Sigma 7'), ('faith7','Faith 7')]):
+ for offset, (phase, label) in enumerate([('coast','before retrosequence'), ('retro-entry','splashdown')]):
+  number = 10 + 2 * index + offset
+  cases.append((f'{mission}-{phase}', f'{number} {title} - {label}.scn', 'ProjectMercuryAtlas', 'Mercury_LC14'))
 manifest=json.loads((repo/'Native/verification/launcher-manifest.json').read_text())[:6]
 for case,name,module,pad in cases:
  f=verified/name;shutil.copy2(replays/case/'saved.scn',f)

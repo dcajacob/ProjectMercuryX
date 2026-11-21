@@ -84,9 +84,9 @@ The build uses NASSP’s pinned shared Orbiter source, applies the merged Orbite
 the matching SDK, OpenGL client, launcher, XRSound bridge and all 15 vessel modules.
 
 The flight job downloads the original Mercury distribution from the publisher,
-checks its SHA-256, and flies the nine replays listed below. The cockpit checks
+checks its SHA-256, and flies the 15 replays listed below. The cockpit checks
 use the Friendship 7 pre-retro save produced by that run. The launcher opens the
-six original missions and all nine generated saves. Every session runs under Xvfb
+six original missions and all 15 generated saves. Every session runs under Xvfb
 and Mesa software OpenGL with its own PulseAudio null sink verified at 5%.
 
 The Actions run publishes the measured flight results, cockpit event times,
@@ -100,10 +100,11 @@ runs after a merge and can be started from the Actions tab.
 telemetry, renderer evidence and XRSound log. It uses an isolated PulseAudio null
 sink at 5% and an Xvfb X11 display. It never changes the desktop volume.
 Required tools: Python 3, Xvfb, xauth, xwininfo, libX11, libXtst, PulseAudio and
-pactl, plus Pillow for screenshots. The `launcher` mode checks all six original historical scenarios and nine verified saves through
+pactl, plus Pillow for screenshots. With the generated package manifest, `launcher` mode checks all six original historical scenarios and 15 verified saves through
 the normal GUI, verifies native modules, resizes, resumes, quicksaves and exits.
 
-See `verification/results.json` for the measured qualification results and scope.
+Each package contains its measured results in `qualification/results.json`. The same
+report is available in the Actions artifact as `flight-results.json`.
 
 To test the RETRO SEQ cockpit button with the verified Friendship 7 pre-retro
 save, run the following command with a fresh output directory. It checks a
@@ -117,18 +118,17 @@ python3 Native/verification/retro-panel.py "$PACKAGE" \
 ```
 
 
-The initial qualification passed **9 flight replays and 15 launcher checks**:
+The suite covers **15 flight replays and 21 launcher checks**.
 
 | Mission | Flight coverage |
 | --- | --- |
 | Freedom 7 | Original launch, linked ascent save, retrosequence, reentry, chutes and splashdown |
 | Liberty Bell 7 | Continuous original launch through retrosequence, reentry, chutes and splashdown |
 | Friendship 7 | Original Atlas ascent, Earth orbit, 15,100-second coast, retrosequence, reentry and splashdown on one linked save chain |
-| Aurora 7, Sigma 7, Faith 7 | Original Atlas ascent and orbital insertion |
+| Aurora 7, Sigma 7, Faith 7 | Each original Atlas ascent and insertion save, linked coast to five minutes before retrosequence, three retro motor firings, reentry, drogue, main chute and ocean contact |
 
-Every original historical scenario and all nine generated checkpoint saves also
-passed launch paused, resize to 1180×720, keyboard resume, quicksave and clean
-exit from the normal launcher. Both exterior and cockpit images were inspected.
+The launcher opens each original scenario and generated checkpoint paused, resizes
+to 1180×720, resumes with the keyboard, quicksaves and exits.
 The tests use software OpenGL (Mesa llvmpipe) with actual Orbiter vessel modules,
 physics, textures and original launch-pad meshes.
 
@@ -139,9 +139,20 @@ and allows the normal 30-second delay before retrofire. Ctrl-P pauses without
 commanding the spacecraft. Original assets and generated saves stay in the local
 package; the fork contains source, checksums, replay tooling and measured results.
 
-This is initial Linux qualification. Complete Aurora 7, Sigma 7 and Faith 7
-missions, Little Joe/Scout flights, Windows/macOS builds, and historical numerical
-parity remain unqualified. The original source's flight-history summary resets
+For Aurora 7, Sigma 7 and Faith 7, select saves **10–15** for the pre-retro and
+splashdown checkpoints. Each replay coasts at a 0.125-second physics step, reloads
+its own checkpoint, then uses the normal Space command and a 0.0625-second step
+for entry. The command is scheduled at mission elapsed time 04:32:36.5,
+08:51:30 and 33:58:59 respectively. The 30-second delay and five-second motor
+spacing are checked against the actual retrocover release events. The verifier
+also checks that perigee falls below 60 km, both chutes deploy in order, and the
+capsule touches down at sea level within the ocean on Orbiter's coastline map.
+The command times use the mission chronology in the
+[NASA Historical Data Book, volume II](https://www.nasa.gov/wp-content/uploads/2023/04/sp-4012v2.pdf).
+
+The replays fly nominal controls. Historical equipment failures, landing-site
+accuracy, Little Joe/Scout flights, Windows/macOS builds and historical
+numerical parity remain unqualified. The original source's flight-history summary resets
 across reloads; trajectory qualification therefore uses the native telemetry and
 linked save chain rather than treating that summary as a continuous flight log.
 
