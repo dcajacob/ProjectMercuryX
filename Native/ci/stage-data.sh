@@ -8,6 +8,9 @@ fetch() {
     curl --fail --location --silent --show-error --retry 3 "$1" -o "$2"
     printf '%s  %s\n' "$3" "$2" | sha256sum -c -
 }
+# This is the publisher's permanent redirect target for the original v3.1 download.
+fetch https://cdn.orbithangar.com/user/a9748c7b-65fb-458a-898d-c3516a4fe691/addon/aa76f625-781d-4194-b153-16b81c9ae3e0/ProjectMercuryX-v3.1.zip \
+    mercury.zip b35f077878c800ba49e6b4ab40a76544b190a754349166ee1ec7ec86b540cbc8
 inputs=https://github.com/dcajacob/NASSP/releases/download/native-linux-ci-inputs-v1
 fetch "$inputs/nassp-native-ci-inputs-v1.tar.zst" fixture.tar.zst 26d5891ea54a01ab8d007bed3ab2e9f5ed46ff8cd315921c57ca0e334faf37bd
 tar --zstd --exclude='./runtime/engine' --exclude='./runtime/resources/Modules' --exclude='*ProjectApollo*' --exclude='*Apollo*' \
@@ -24,7 +27,5 @@ kernel=runtime/celestial-data/Kernels/orbiter.bsp
 unzip -p stock.zip Kernels/orbiter.bsp > "$kernel"
 printf '%s  %s\n' f98bd1a789fca05e0a1148db6d4b6d20ff7146896864bb04e4aac9c190371f83 "$kernel" | sha256sum -c -
 rm stock.zip
-curl --fail --location --silent --show-error --retry 3 \
-    https://www.orbiter-forum.com/resources/project-mercury-x.2666/download -o mercury.zip
 python3 "$repo/Native/stage-assets.py" mercury.zip runtime
 rm mercury.zip
