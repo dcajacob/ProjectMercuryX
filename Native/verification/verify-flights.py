@@ -7,7 +7,7 @@ import json
 import math
 import re
 import sys
-from orbital_returns import PRE_RETRO_SECONDS, RETROSEQUENCE_MET
+from orbital_returns import CHECKPOINT_MET, sequence_met as planned_sequence_met
 from runtime_provenance import runtime_hashes, verify_record
 runtime, root, destination = map(Path,sys.argv[1:])
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
@@ -47,7 +47,7 @@ def is_ocean(latitude, longitude):
                 previous = x, lat
     return crossings % 2 == 0
 
-def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown, original):
+def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown, original, max_miss_km=None):
     sequence_seconds = sequence_met - start_met
     with (case/'evidence/input-events.csv').open() as stream:
         presses = [int(r['tick']) for r in csv.DictReader(stream) if r['key'] == '57' and r['down'] == '1']
@@ -66,18 +66,24 @@ def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, t
     assert float(touchdown['airspeed']) < 12, (case, touchdown)
     with (case/'evidence/ground-math.csv').open() as stream:
         surface = next(r for r in csv.DictReader(stream) if r['tick'] == touchdown['tick'])
+    assert touchdown['focus'] == ship, (case, 'ground coordinates describe the focus vessel')
     lat, lon = (math.degrees(float(surface[key])) for key in ('latitude', 'longitude'))
     assert abs(float(surface['elevation'])) < 3 and is_ocean(lat, lon), (case, lat, lon, surface['elevation'])
-    scenario = original.read_text()
+    scenario = re.search(rf'^{re.escape(ship)}:[^\n]+\n(.*?)^END$', original.read_text(), re.M | re.S)[1]
     target_lat, target_lon = (float(re.search(rf'^  MISSIONLAND{axis} ([\d.-]+)$', scenario, re.M)[1])
                               for axis in ('LAT', 'LONG'))
     haversine = (math.sin(math.radians(lat - target_lat) / 2) ** 2 +
                  math.cos(math.radians(lat)) * math.cos(math.radians(target_lat)) *
                  math.sin(math.radians(lon - target_lon) / 2) ** 2)
-    return dict(retro_motor_met_s=[start_met + s for _, s in covers], post_burn_perigee_km=perigee,
+    miss_km = 2 * earth_radius / 1000 * math.asin(math.sqrt(haversine))
+    if max_miss_km is not None and not miss_km <= max_miss_km:
+        raise ValueError(f'{ship} first ocean contact at ({lat:.4f}, {lon:.4f}) is {miss_km:.1f} km '
+                         f'from the scenario target ({target_lat}, {target_lon}), limit {max_miss_km} km')
+    return dict(retrosequence_command_met_s=sequence_met, retro_motor_met_s=[start_met + s for _, s in covers], post_burn_perigee_km=perigee,
                 splashdown_met_s=start_met + float(touchdown['seconds']), splashdown_lat_deg=lat,
                 splashdown_lon_deg=lon, contact_airspeed_mps=float(touchdown['airspeed']),
-                distance_to_scenario_target_km=2 * earth_radius / 1000 * math.asin(math.sqrt(haversine)))
+                target_lat_deg=target_lat, target_lon_deg=target_lon, distance_to_scenario_target_km=miss_km,
+                max_recovery_distance_km=max_miss_km)
 
 cases=[('freedom7-launch','MR-3','ascent'),('freedom7-reentry','MR-3','recovery'),
        ('libertybell7-flight','MR-4','recovery'),('friendship7-launch','MA-6','insertion'),
@@ -97,14 +103,15 @@ for name,ship,phase in cases:
     assert '5%' in (case/'audio-server.txt').read_text(),name
     assert json.loads((case/'evidence/native-window.json').read_text())['backend']=='x11',name
     mission = name.split('-')[0]
-    linked_return = mission in RETROSEQUENCE_MET and phase in ('coast', 'recovery')
+    linked_return = mission in CHECKPOINT_MET and phase in ('coast', 'recovery')
     after_burn = touchdown = None
     if linked_return:
         parent = f'{mission}-' + ('launch' if phase == 'coast' else 'coast')
         assert sha(case/'input.scn') == sha(root/parent/'saved.scn'), (name, parent)
         start_met = saved_met(case/'input.scn')
-        sequence_met = RETROSEQUENCE_MET[mission]
-        checkpoint_met = int(sequence_met) - PRE_RETRO_SECONDS
+        checkpoint_met = CHECKPOINT_MET[mission]
+        if phase == 'recovery':
+            sequence_met = planned_sequence_met(mission, root/parent)
     first=last=None;maximum=0;minimum=math.inf;rows=0
     with (case/'evidence/flight-state.csv').open() as stream:
         for row in csv.DictReader(stream):
@@ -147,7 +154,8 @@ for name,ship,phase in cases:
             assert start_met == checkpoint_met, name
             assert console.index('Drogue deployed') < console.index('Main deployed') < console.index('sep main on contact'), name
             result.update(verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown,
-                                            root/f'{mission}-launch'/'input.scn'))
+                                            root/f'{mission}-launch'/'input.scn',
+                                            max_miss_km=50 if mission == 'faith7' else None))
     else:assert 100000<float(last['altitude_mean'])<220000,name
     results.append(result)
 report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'private PulseAudio null sink at 5%',
@@ -158,7 +166,7 @@ report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'priva
         'runtime_sha256':build_hashes,
         'flight_replays':results,
         'limitations':['Historical accuracy and Windows numerical parity are not yet qualified.',
-                       'The orbital returns use nominal spacecraft systems. Historical failures and recovery-site accuracy are unqualified.',
+                       'The orbital returns use nominal spacecraft systems. Historical failures and recovery-site accuracy for missions other than Faith 7 are unqualified.',
                        'Little Joe and Scout modules build; their flight sequences are not yet qualified.',
                        'Windows and macOS add-on builds are not yet tested.']}
 destination.parent.mkdir(parents=True,exist_ok=True)

@@ -8,7 +8,7 @@ import re
 import shutil
 import subprocess
 
-from orbital_returns import RETROSEQUENCE_MET
+from orbital_returns import sequence_met
 
 
 STEP = 1 / 16
@@ -133,7 +133,7 @@ def verify_countdown(runtime, flights, output):
     if source.read_bytes() != (reference/'input.scn').read_bytes():
         raise ValueError('Faith 7 control and split flights have different starting saves')
     met = int(capsule_fields(source, ship)['MET'])
-    command_seconds = RETROSEQUENCE_MET['faith7'] - met
+    command_seconds = sequence_met('faith7', source.parent) - met
     start = output/'armed'
     mid = output/'first-motor'
     end = output/'remaining-motors'

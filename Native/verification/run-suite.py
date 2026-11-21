@@ -2,16 +2,17 @@
 """Replay original missions and their linked saves with real vessel controls."""
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import os
 import re
 import shutil
 import subprocess
 import sys
-from orbital_returns import PRE_RETRO_SECONDS, RETROSEQUENCE_MET
+from orbital_returns import CHECKPOINT_MET, sequence_met
 runtime, output = (Path(p).resolve() for p in sys.argv[1:])
 runner=Path(__file__).with_name('run-session.sh')
 originals=runtime/'resources/Scenarios/Project Mercury/Historical launch scenarios'
 
-def run(name,source,ticks,step,keys=(),render_every=257,coast_ship=None):
+def run(name,source,ticks,step,keys=(),render_every=257,coast_ship=None,trace_recovery=False):
     case=output/name
     case.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(source,case/'input.scn')
@@ -23,7 +24,8 @@ def run(name,source,ticks,step,keys=(),render_every=257,coast_ship=None):
     command = [runner, runtime, case, str(ticks), str(step), str(render_every)]
     if coast_ship:
         command.append(coast_ship)
-    subprocess.run(command, check=True)
+    env = dict(os.environ, MERCURY_TRACE_RECOVERY_CLOCK="1") if trace_recovery else None
+    subprocess.run(command, check=True, env=env)
     text=(case/'console.log').read_text(errors='replace')
     if 'Saved finalized production scenario:' not in text or 'terminating.' not in text:
         raise RuntimeError(f'Incomplete native session: {name}')
@@ -44,18 +46,18 @@ with ThreadPoolExecutor(max_workers=2) as pool:
     for job in jobs:job.result()
 run('friendship7-retro-entry',output/'friendship7-three-orbits/saved.scn',40000,.0625,[(6624,57)])
 
-for mission_name, sequence_met in RETROSEQUENCE_MET.items():
+for mission_name, checkpoint_met in CHECKPOINT_MET.items():
     orbit_save = output / f'{mission_name}-launch' / 'saved.scn'
     scenario = orbit_save.read_text()
     ship = re.search(r'^BEGIN_FOCUS\s+Ship (MA-\d+)\s+END_FOCUS$', scenario, re.M)[1]
     start_met = int(re.search(r'^  MET (\d+)$', scenario, re.M)[1])
     # Scenario MET is serialized in whole seconds. Keep the fractional part
     # on the entry leg, at its finer integration step.
-    checkpoint_met = int(sequence_met) - PRE_RETRO_SECONDS
     coast_seconds = checkpoint_met - start_met
     if coast_seconds <= 0:
         raise ValueError(f'{mission_name}: orbit save is past the coast start window')
     coast = f'{mission_name}-coast'
-    run(coast, orbit_save, coast_seconds * 8, .125, render_every=4096, coast_ship=ship)
-    command_tick = round((sequence_met - checkpoint_met) * 16)
-    run(f'{mission_name}-retro-entry', output/coast/'saved.scn', 40000, .0625, [(command_tick, 57)])
+    run(coast, orbit_save, coast_seconds * 8, .125, render_every=4096, coast_ship=ship,
+        trace_recovery=(mission_name == 'faith7'))
+    command_tick = round((sequence_met(mission_name, output/coast) - checkpoint_met) * 16)
+    run(f'{mission_name}-retro-entry', output/coast/'saved.scn', max(40000, command_tick + 24000), .0625, [(command_tick, 57)])
