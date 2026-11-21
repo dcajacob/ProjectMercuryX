@@ -57,7 +57,7 @@ jobs:
           if-no-files-found: error
 
   flights:
-    name: Nine flight replays, cockpit retrosequence and launcher
+    name: Mercury flight replays, cockpit retrosequence and launcher
     needs: build
     runs-on: ubuntu-24.04
     container: ubuntu:26.04
@@ -94,7 +94,7 @@ jobs:
           set -o pipefail
           runuser -u mercury-ci -- python3 Native/verification/retro-panel.py "$RUNNER_TEMP/mercury/runtime" \
             "$PWD/results/flights/friendship7-three-orbits/saved.scn" "$PWD/results/retro-panel" | tee results/retro-panel.log
-      - name: Launch six original scenarios and nine generated saves
+      - name: Launch six original scenarios and fifteen generated saves
         run: |
           package="$RUNNER_TEMP/mercury/package"
           runuser -u mercury-ci -- env MERCURY_LAUNCHER_MANIFEST="$package/qualification/launcher-manifest.json" \
