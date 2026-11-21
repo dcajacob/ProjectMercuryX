@@ -138,7 +138,7 @@ The suite covers **15 flight replays and 21 launcher checks**.
 | Freedom 7 | Original launch, linked ascent save, retrosequence, reentry, chutes and splashdown |
 | Liberty Bell 7 | Continuous original launch through retrosequence, reentry, chutes and splashdown |
 | Friendship 7 | Original Atlas ascent, Earth orbit, 15,100-second coast, retrosequence, reentry and splashdown on one linked save chain |
-| Aurora 7, Sigma 7, Faith 7 | Each original Atlas ascent and insertion save, linked coast to five minutes before retrosequence, three retro motor firings, reentry, drogue, main chute and ocean contact |
+| Aurora 7, Sigma 7, Faith 7 | Each original Atlas ascent and insertion save, linked coast to the pre-retro checkpoint, three retro motor firings, reentry, drogue, main chute and ocean contact |
 
 The launcher opens each original scenario and generated checkpoint paused, resizes
 to 1180×720, resumes with the keyboard, quicksaves and exits.
@@ -155,17 +155,31 @@ package; the fork contains source, checksums, replay tooling and measured result
 For Aurora 7, Sigma 7 and Faith 7, select saves **10–15** for the pre-retro and
 splashdown checkpoints. Each replay coasts at a 0.125-second physics step, reloads
 its own checkpoint, then uses the normal Space command and a 0.0625-second step
-for entry. The command is scheduled at mission elapsed time 04:32:36.5,
-08:51:30 and 33:58:59 respectively. The 30-second delay and five-second motor
-spacing are checked against the actual retrocover release events. The verifier
-also checks that perigee falls below 60 km, both chutes deploy in order, and the
-capsule touches down at sea level within the ocean on Orbiter's coastline map.
-The command times use the mission chronology in the
+for entry. Aurora 7 and Sigma 7 command retrosequence at 04:32:36.5 and
+08:51:30 mission elapsed time, following the
 [NASA Historical Data Book, volume II](https://www.nasa.gov/wp-content/uploads/2023/04/sp-4012v2.pdf).
+The verifier checks the 30-second delay, five-second motor spacing, post-burn
+perigee below 60 km, both chutes and first ocean contact.
+
+**Faith 7 recovery.** Save 09 is the verified insertion orbit. Its apogee is
+298 km and its inclination is 28.96°. The original mission description gives
+267 km and 32.55°. At the historical 33:58:59 command the simulated capsule
+splashed down at 28.9193° N, 142.5729° E, 3,988 km from the ship. The panel
+had no solution on that pass. The linked replay uses the preceding Pacific
+pass. Open save 14 at 32:21:40 and press Space at the panel's retrosequence
+time (32:34:04 on the verified save). The capsule fires all three motors and
+splashes down near 27.13° N, 176.71° W. The target in the original scenario is
+27.377° N, 176.588° W.
+
+CI reads the Atlas panel's geographic solution at the end of the coast and
+fails if the panel gives no upcoming time. It measures the great-circle miss
+from the focus capsule's first ocean contact to the original scenario target.
+The 50 km regression limit applies to this native Faith 7 replay. The report
+includes the command time, target, first-contact coordinates and miss distance.
 
 The replays fly nominal controls. Historical equipment failures, landing-site
-accuracy, Little Joe/Scout flights, Windows/macOS builds and historical
-numerical parity remain unqualified. The original source's flight-history summary resets
+accuracy for other missions, Little Joe/Scout flights, Windows/macOS builds and
+historical numerical parity remain unqualified. The original source's flight-history summary resets
 across reloads; trajectory qualification therefore uses the native telemetry and
 linked save chain rather than treating that summary as a continuous flight log.
 

@@ -2707,6 +2707,18 @@ void ProjectMercury::clbkSaveState(FILEHANDLE scn)
 	if (VesselStatus == FLIGHT)
 	{
 		oapiWriteScenario_int(scn, "ORBITNR", orbitCount);
+#ifdef MERCURY_NATIVE_ORBITER
+		// Let a headless replay read the same geographic solution shown on the panel.
+		if (landingComputing && !noMissionLandLat && !engageRetro && retroStartTime == 0.0 &&
+			std::getenv("MERCURY_TRACE_RECOVERY_CLOCK"))
+		{
+			int hours, minutes, seconds, dh, dm, ds;
+			const double met = oapiGetSimTime() - launchTime;
+			GetPanelRetroTimes(met, &hours, &minutes, &seconds, &dh, &dm, &ds);
+			oapiWriteLogV("Mercury recovery clock %s MET %d sequence %02d:%02d:%02d",
+				GetName(), int(met), hours, minutes, seconds);
+		}
+#endif
 	}
 
 	oapiWriteScenario_int(scn, "MISSIONORBITNR", missionOrbitNumber);
