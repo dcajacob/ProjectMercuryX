@@ -7,7 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
-from orbital_returns import CHECKPOINT_MET, sequence_met
+from orbital_returns import CHECKPOINT_MET, FAITH7_HZ, entry_hz, sequence_met
 runtime, output = (Path(p).resolve() for p in sys.argv[1:])
 runner=Path(__file__).with_name('run-session.sh')
 originals=runtime/'resources/Scenarios/Project Mercury/Historical launch scenarios'
@@ -37,7 +37,7 @@ first=[('freedom7-launch',mission(1),4800,.0625,[(960,25)]),
        ('libertybell7-flight',mission(2),24000,.0625,[(960,25),(5504,57)]),
        ('aurora7-launch',mission(4),14400,.0625,[(960,25)]),
        ('sigma7-launch',mission(5),14400,.0625,[(960,25)]),
-       ('faith7-launch',mission(6),14400,.0625,[(960,25)])]
+       ('faith7-launch',mission(6),900*FAITH7_HZ,1/FAITH7_HZ,[(60*FAITH7_HZ,25)],1024)]
 with ThreadPoolExecutor(max_workers=3) as pool:
     list(pool.map(lambda args:run(*args),first))
 with ThreadPoolExecutor(max_workers=2) as pool:
@@ -59,5 +59,9 @@ for mission_name, checkpoint_met in CHECKPOINT_MET.items():
     coast = f'{mission_name}-coast'
     run(coast, orbit_save, coast_seconds * 8, .125, render_every=4096, coast_ship=ship,
         trace_recovery=(mission_name == 'faith7'))
-    command_tick = round((sequence_met(mission_name, output/coast) - checkpoint_met) * 16)
-    run(f'{mission_name}-retro-entry', output/coast/'saved.scn', max(40000, command_tick + 24000), .0625, [(command_tick, 57)])
+    hz = entry_hz(mission_name)
+    command_tick = round((sequence_met(mission_name, output/coast) - checkpoint_met) * hz)
+    duration = 2000 if mission_name == 'faith7' else 2500
+    render_every = 1024 if mission_name == 'faith7' else 257
+    run(f'{mission_name}-retro-entry', output/coast/'saved.scn', duration * hz,
+        1/hz, [(command_tick, 57)], render_every=render_every)

@@ -9,9 +9,18 @@ HISTORICAL_SEQUENCE_MET = {
 }
 
 CHECKPOINT_MET = {mission: int(met) - 300 for mission, met in HISTORICAL_SEQUENCE_MET.items()}
-# On the verified orbit the preceding Pacific pass crosses the recovery area.
-# This is the time to consult the panel, before commanding any retro motors.
-CHECKPOINT_MET['faith7'] = 32 * 3600 + 21 * 60 + 40
+# Consult the panel 30 seconds before the historical event (NASA SP-4012
+# vol. II, table 2-35). Its earlier five-minute prediction is still changing.
+FAITH7_HISTORICAL_MET = 33 * 3600 + 58 * 60 + 59
+CHECKPOINT_MET['faith7'] = FAITH7_HISTORICAL_MET - 30
+
+
+# Frequency of the normal OpenGL launcher. Use it on both powered legs of MA-9.
+FAITH7_HZ = 60
+
+
+def entry_hz(mission):
+    return FAITH7_HZ if mission == 'faith7' else 16
 
 
 def sequence_met(mission, coast):
@@ -26,6 +35,6 @@ def sequence_met(mission, coast):
         raise ValueError(f'{coast}: missing MA-9 panel recommendation at MET {met}')
     hours, minutes, seconds = map(int, clocks[-1])
     command = hours * 3600 + minutes * 60 + seconds
-    if minutes >= 60 or seconds >= 60 or not met < command < met + 5500:
+    if minutes >= 60 or seconds >= 60 or not met < command <= FAITH7_HISTORICAL_MET + 60:
         raise ValueError(f'{coast}: no upcoming recovery solution at MET {met}: {clocks[-1]}')
     return command

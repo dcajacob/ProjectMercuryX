@@ -8,10 +8,10 @@ import re
 import shutil
 import subprocess
 
-from orbital_returns import sequence_met
+from orbital_returns import FAITH7_HZ, sequence_met
 
 
-STEP = 1 / 16
+STEP = 1 / FAITH7_HZ
 SPACE = 57
 RUNNER = Path(__file__).with_name('run-session.sh')
 
@@ -83,7 +83,7 @@ def check_armed(save, ship, remaining, cover_mask):
 def state_at(case, ship, seconds):
     with (case/'evidence/flight-state.csv').open() as stream:
         for row in csv.DictReader(stream):
-            if row['object'] == ship and float(row['seconds']) == seconds:
+            if row['object'] == ship and int(row['tick']) == round(seconds / STEP):
                 return row
     raise ValueError(f'{case}: missing state for {ship} at {seconds} seconds')
 
@@ -95,7 +95,11 @@ def verify_targets(flights):
         for phase in ('launch', 'coast', 'retro-entry'):
             scenario = flights/f'{mission}-{phase}'/'saved.scn'
             check_target(scenario, ship, expected)
-            if capsule_fields(scenario, ship).get('LANDINGCOMPUTER', '').split() != ['1', '0', '0', '1']:
+            fields = capsule_fields(scenario, ship)
+            position_ascent = '0' if mission == 'faith7' else '1'
+            if mission == 'faith7' and float(fields['INCLINATION']) != 32.55:
+                raise ValueError(f'{scenario}: lost Faith 7 ascent inclination')
+            if fields.get('LANDINGCOMPUTER', '').split() != ['1', '0', '0', position_ascent]:
                 raise ValueError(f'{scenario}: expected the original geographic targeting mode for {ship}')
         targets[mission] = dict(orbits=expected[0], latitude=expected[1], longitude=expected[2])
         print(f'PASS {ship} recovery target through insertion, coast and recovery: {expected}', flush=True)
