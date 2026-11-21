@@ -512,7 +512,7 @@ private:
 	double currentPitchAim = 90.0;
 	bool spaceLaunch = false;
 	bool engageRetro = false;
-	double retroStartTime;
+	double retroStartTime = 0.0;
 	bool autoPilot = false;
 	double launchTime = 0.0;
 	double boosterShutdownTime = 0.0;

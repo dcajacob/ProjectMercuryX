@@ -8,6 +8,10 @@ ticks=$3
 step=${4:-.0625}
 render_every=${5:-257}
 coast_ship=${6:-}
+if [[ "$ticks" != launcher ]]; then
+    # Invalidate a previous successful run before replacing any of its evidence.
+    rm -f -- "$case_dir/runtime-provenance.json"
+fi
 pulse_dir=$(mktemp -d)
 export PULSE_RUNTIME_PATH="$pulse_dir" PULSE_SERVER="unix:$pulse_dir/pulse.sock" PULSE_SINK=mercury_test
 export LIBGL_ALWAYS_SOFTWARE=1 LP_NUM_THREADS=2 QT_QPA_PLATFORM=xcb XDG_SESSION_TYPE=x11
@@ -17,6 +21,7 @@ env DBUS_SESSION_BUS_ADDRESS="unix:path=$pulse_dir/no-session-bus" pulseaudio -n
 pulse_pid=$!
 trace_pid=
 coast_dir=
+provenance_tmp=
 cleanup() {
     if [[ -n "$trace_pid" ]]; then
         kill "$trace_pid" 2>/dev/null || true
@@ -31,6 +36,7 @@ cleanup() {
         find "$coast_dir" -maxdepth 1 -type f -exec mv -t "$case_dir/evidence" -- {} +
         rm -rf "$coast_dir"
     fi
+    if [[ -n "$provenance_tmp" ]]; then rm -f -- "$provenance_tmp"; fi
     kill "$pulse_pid" 2>/dev/null || true
     wait "$pulse_pid" 2>/dev/null || true
     rm -rf "$pulse_dir"
@@ -47,11 +53,17 @@ volume=$(LC_ALL=C pactl get-sink-volume "$PULSE_SINK")
 printf '%s\n' "$volume" >> "$case_dir/audio-server.txt"
 [[ $(grep -oE '[0-9]+%' <<< "$volume" | sort -u) == 5% ]] || { echo "Unexpected sink volume: $volume" >&2; exit 1; }
 if [[ "$ticks" == launcher ]]; then
+    manifest=${MERCURY_LAUNCHER_MANIFEST:-"$runtime/qualification/launcher-manifest.json"}
+    if [[ -z ${MERCURY_LAUNCHER_MANIFEST:-} && ! -e "$manifest" ]]; then
+        manifest="$script_dir/launcher-manifest.json"
+    fi
     env -u WAYLAND_DISPLAY -u LD_LIBRARY_PATH xvfb-run -a -s '-screen 0 1600x1000x24 +extension GLX' \
-        python3 "$script_dir/launchpad.py" "$runtime" "$case_dir" "${MERCURY_LAUNCHER_MANIFEST:-$script_dir/launcher-manifest.json}"
+        python3 "$script_dir/launchpad.py" "$runtime" "$case_dir" "$manifest"
     exit
 fi
 cd "$case_dir"
+provenance_tmp=$(mktemp "$case_dir/.runtime-provenance.XXXXXXXX")
+python3 "$script_dir/runtime_provenance.py" start "$runtime" "$case_dir" "$provenance_tmp"
 evidence=evidence
 if [[ -n "$coast_ship" ]]; then
     # Up to 34 simulated hours. Keep every capsule sample and avoid filling
@@ -84,3 +96,4 @@ if [[ -n "$trace_pid" ]]; then
     wait "$trace_pid"
     trace_pid=
 fi
+python3 "$script_dir/runtime_provenance.py" finish "$runtime" "$case_dir" "$provenance_tmp"

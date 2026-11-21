@@ -1474,6 +1474,10 @@ void ProjectMercury::clbkLoadStateEx(FILEHANDLE scn, void* status)
 			sscanf_s(cbuf + 8, "%i", &readToBool);
 			enableAbortConditions = (bool)readToBool;
 		}
+		else if (!_strnicmp(cbuf, "RETROSEQUENCE ", 14))
+		{
+			engageRetro = ReadRetroSequence(cbuf + 14, retroStartTime, retroCoverSeparated);
+		}
 		else if (!_strnicmp(cbuf, "MET", 3))
 		{
 			int metTime;
@@ -1556,6 +1560,9 @@ void ProjectMercury::clbkSaveState(FILEHANDLE scn)
 	else oapiWriteScenario_int(scn, "CAPSULE", CapsuleVersion);
 
 	oapiWriteScenario_int(scn, "AUTOMODE", AutopilotStatus);
+
+	if (VesselStatus == FLIGHT && engageRetro)
+		WriteRetroSequence(scn, retroStartTime, retroCoverSeparated);
 
 	oapiWriteScenario_int(scn, "SUBORBITAL", suborbitalMission);
 

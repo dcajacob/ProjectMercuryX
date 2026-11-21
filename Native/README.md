@@ -89,8 +89,21 @@ use the Friendship 7 pre-retro save produced by that run. The launcher opens the
 six original missions and all 15 generated saves. Every session runs under Xvfb
 and Mesa software OpenGL with its own PulseAudio null sink verified at 5%.
 
-The Actions run publishes the measured flight results, cockpit event times,
-launcher results and audio logs in `mercury-flight-evidence`. The workflow also
+The reload checks follow each Atlas recovery target from the original Aurora 7,
+Sigma 7 and Faith 7 scenarios through their generated saves. On Faith 7 they
+interrupt the retrosequence and compare the motor firings after reload with
+the uninterrupted flight. Older saves are still readable. Regenerate old
+checkpoints from the original mission to recover target or countdown data
+that the previous version omitted.
+
+Every flight records the native runtime and module hashes, including the Atlas
+and Redstone libraries. Packaging checks each replay record against the supplied
+build and its input, controls and final save. A missing record or changed binary
+requires a fresh run. The launcher check uses the manifest generated in the
+package; set `MERCURY_LAUNCHER_MANIFEST` to select a different one.
+
+The Actions run publishes the measured flight and reload results, cockpit event
+times, binary hashes, launcher results and audio logs in `mercury-flight-evidence`. The workflow also
 runs after a merge and can be started from the Actions tab.
 
 ## Verification
@@ -162,8 +175,8 @@ To reproduce the flight suite and package from a staged private runtime:
 ```sh
 python3 Native/verification/run-suite.py "$RUNTIME" "$REPLAYS"
 python3 Native/package-runtime.py "$RUNTIME" "$REPLAYS" "$PACKAGE"
-MERCURY_LAUNCHER_MANIFEST="$PACKAGE/qualification/launcher-manifest.json" \
-  Native/verification/run-session.sh "$PACKAGE" "$CHECKS" launcher
+python3 Native/verification/reload-state.py "$RUNTIME" "$REPLAYS" "$CHECKS/reload-state"
+Native/verification/run-session.sh "$PACKAGE" "$CHECKS/launcher" launcher
 ```
 
 The package helper excludes unrelated Apollo resources from a reused NASSP

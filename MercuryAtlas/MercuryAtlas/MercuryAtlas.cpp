@@ -2372,6 +2372,7 @@ bool ProjectMercury::clbkDrawHUD(int mode, const HUDPAINTSPEC* hps, oapi::Sketch
 
 void ProjectMercury::clbkLoadStateEx(FILEHANDLE scn, void* status)
 {
+	int savedLaunchTargetMode = -1;
 	int i = 0;
 	char* cbuf;
 
@@ -2420,6 +2421,10 @@ void ProjectMercury::clbkLoadStateEx(FILEHANDLE scn, void* status)
 			sprintf(oLog, "BECO time set to T+%.1f seconds.", becoTime);
 			oapiWriteLog(oLog);
 		}
+		else if (!_strnicmp(cbuf, "RETROSEQUENCE ", 14))
+		{
+			engageRetro = ReadRetroSequence(cbuf + 14, retroStartTime, retroCoverSeparated);
+		}
 		else if (!_strnicmp(cbuf, "MET", 3))
 		{
 			int metTime;
@@ -2443,6 +2448,17 @@ void ProjectMercury::clbkLoadStateEx(FILEHANDLE scn, void* status)
 		else if (!_strnicmp(cbuf, "PERIGEE", 7))
 		{
 			sscanf_s(cbuf + 7, "%lf", &missionPerigee);
+		}
+		else if (!_strnicmp(cbuf, "LANDINGCOMPUTER ", 16))
+		{
+			int enabled, longitudeOnly, manualTime, positionTarget;
+			if (std::sscanf(cbuf + 16, "%d %d %d %d", &enabled, &longitudeOnly, &manualTime, &positionTarget) == 4)
+			{
+				landingComputing = enabled != 0;
+				noMissionLandLat = longitudeOnly != 0;
+				manualInputRetroTime = manualTime;
+				savedLaunchTargetMode = positionTarget != 0;
+			}
 		}
 		else if (!_strnicmp(cbuf, "MISSIONORBITNR", 14))
 		{
@@ -2540,6 +2556,9 @@ void ProjectMercury::clbkLoadStateEx(FILEHANDLE scn, void* status)
 		}
 		else ParseScenarioLineEx(cbuf, status);
 	}
+	// Older scenarios select this mode implicitly via INCLINATION or
+	// MISSIONLANDLONG. A saved explicit mode takes precedence in any line order.
+	if (savedLaunchTargetMode != -1) launchTargetPosition = savedLaunchTargetMode != 0;
 }
 
 inline bool ProjectMercury::ReadRocketTextureReplacement(const char *flag, const char* cbuf, int len)
@@ -2673,6 +2692,9 @@ void ProjectMercury::clbkSaveState(FILEHANDLE scn)
 
 	oapiWriteScenario_int(scn, "AUTOMODE", AutopilotStatus);
 
+	if (VesselStatus == FLIGHT && engageRetro)
+		WriteRetroSequence(scn, retroStartTime, retroCoverSeparated);
+
 	oapiWriteScenario_int(scn, "SUBORBITAL", suborbitalMission);
 
 	oapiWriteScenario_int(scn, "ABORTBUS", enableAbortConditions);
@@ -2686,6 +2708,15 @@ void ProjectMercury::clbkSaveState(FILEHANDLE scn)
 	{
 		oapiWriteScenario_int(scn, "ORBITNR", orbitCount);
 	}
+
+	oapiWriteScenario_int(scn, "MISSIONORBITNR", missionOrbitNumber);
+	oapiWriteScenario_float(scn, "MISSIONLANDLAT", missionLandLat);
+	oapiWriteScenario_float(scn, "MISSIONLANDLONG", missionLandLong);
+	if (!launchTargetPosition) oapiWriteScenario_float(scn, "INCLINATION", targetInclination);
+	char computer[64];
+	std::snprintf(computer, sizeof(computer), "%d %d %d %d", int(landingComputing),
+		int(noMissionLandLat), manualInputRetroTime, int(launchTargetPosition));
+	oapiWriteScenario_string(scn, "LANDINGCOMPUTER", computer);
 
 	oapiWriteScenario_int(scn, "FAILURE", FailureMode);
 
@@ -4548,7 +4579,7 @@ inline void ProjectMercury::GetPanelRetroTimes(double met, int* rH, int* rM, int
 	int ret3H = 0, ret3M = 0, ret3S = 0, dRetH = 0, dRetM = 0, dRetS = 0;
 	double simt = oapiGetSimTime();
 
-	if (retroStartTime != 0.0)
+	if (engageRetro || retroStartTime != 0.0)
 	{
 		double metRetroTime = retroStartTime - 30.0 - launchTime; // -30 to account for retroseq to retroburn. -6.6 is empirical
 		if (switchRetroDelay == 1) metRetroTime += 30.0; // instentanious retro burn, so add 30 seconds back
