@@ -113,7 +113,7 @@ runs after a merge and can be started from the Actions tab.
 telemetry, renderer evidence and XRSound log. It uses an isolated PulseAudio null
 sink at 5% and an Xvfb X11 display. It never changes the desktop volume.
 Required tools: Python 3, Xvfb, xauth, xwininfo, libX11, libXtst, PulseAudio and
-pactl, plus Pillow for screenshots. With the generated package manifest, `launcher` mode checks all six original historical scenarios and 15 verified saves through
+pactl, plus Pillow for screenshots. With the generated package manifest, `launcher` mode checks all six historical launch scenarios and 15 verified saves through
 the normal GUI, verifies native modules, resizes, resumes, quicksaves and exits.
 
 Each package contains its measured results in `qualification/results.json`. The same
@@ -138,7 +138,7 @@ The suite covers **15 flight replays and 21 launcher checks**.
 | Freedom 7 | Original launch, linked ascent save, retrosequence, reentry, chutes and splashdown |
 | Liberty Bell 7 | Continuous original launch through retrosequence, reentry, chutes and splashdown |
 | Friendship 7 | Original Atlas ascent, Earth orbit, 15,100-second coast, retrosequence, reentry and splashdown on one linked save chain |
-| Aurora 7, Sigma 7, Faith 7 | Each original Atlas ascent and insertion save, linked coast to the pre-retro checkpoint, three retro motor firings, reentry, drogue, main chute and ocean contact |
+| Aurora 7, Sigma 7, Faith 7 | Each historical Atlas ascent and insertion save, linked coast to the pre-retro checkpoint, three retro motor firings, reentry, drogue, main chute and ocean contact |
 
 The launcher opens each original scenario and generated checkpoint paused, resizes
 to 1180×720, resumes with the keyboard, quicksaves and exits.
@@ -154,8 +154,8 @@ package; the fork contains source, checksums, replay tooling and measured result
 
 For Aurora 7, Sigma 7 and Faith 7, select saves **10–15** for the pre-retro and
 splashdown checkpoints. Each replay coasts at a 0.125-second physics step, reloads
-its own checkpoint, then uses the normal Space command and a 0.0625-second step
-for entry. Aurora 7 and Sigma 7 command retrosequence at 04:32:36.5 and
+its own checkpoint, then uses the normal Space command. Aurora 7 and Sigma 7
+use a 0.0625-second step for entry. Faith 7 uses the normal launcher rate of 60 Hz. Aurora 7 and Sigma 7 command retrosequence at 04:32:36.5 and
 08:51:30 mission elapsed time, following the
 [NASA Historical Data Book, volume II](https://www.nasa.gov/wp-content/uploads/2023/04/sp-4012v2.pdf).
 The verifier checks the 30-second delay, five-second motor spacing, post-burn
@@ -170,7 +170,7 @@ recovery coordinates to select the launch plane when that setting is absent.
 The landing computer continues to target 27.377° N, 176.588° W.
 
 Launch MA-9 from LC-14 with **P** at the end of the original countdown. The
-replay uses the normal launcher's 60 Hz physics step through insertion. At
+replay uses the normal launcher's 60 Hz physics step through insertion and again for retrofire and entry. At
 the previous 16 Hz replay rate, each late ascent step could add several
 metres per second before the simulator applied cutoff. Save **09** is the
 resulting orbit. CI measures its equatorial inclination from the capsule state
@@ -180,10 +180,12 @@ The regression limits are 32.55° ± 0.10°, 161.42 ± 3 km, 266.99 ± 5 km, and
 88 min 45 s ± 10 s. Two-body osculating elements are also available in the
 report and can differ from the observed altitude extrema under nonspherical gravity.
 
-Save **14** starts at MET 33:53:59, five minutes before the historical
-33:58:59 retrosequence. Press **Space** at the panel's indicated time. CI
-requires a panel solution within five minutes of the historical time and
-a first ocean contact within 50 km of the original target. Save **15** opens
+Save **14** starts at MET 33:58:29. Read the cockpit clock and press **Space**
+at **33:59:09** on the verified replay, ten seconds after the historical
+33:58:59 event. The five-minute forecast still read 33:58:59; flying that
+earlier reading at 60 Hz gave a 109 km miss. CI reads the late panel solution
+from the coast, requires a command within one minute of the historical time,
+and checks first ocean contact within 50 km of the original target. Save **15** opens
 at splashdown. The machine-readable report includes the clock offset, first
 contact, target coordinates, and great-circle miss. The times and historical
 apsides are in [NASA Historical Data Book, table 2-35](https://www.nasa.gov/wp-content/uploads/2023/04/sp-4012v2.pdf).

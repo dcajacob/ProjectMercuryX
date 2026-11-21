@@ -7,7 +7,7 @@ import json
 import math
 import re
 import sys
-from orbital_returns import CHECKPOINT_MET, FAITH7_HISTORICAL_MET, sequence_met as planned_sequence_met
+from orbital_returns import CHECKPOINT_MET, FAITH7_HISTORICAL_MET, entry_hz, sequence_met as planned_sequence_met
 from runtime_provenance import runtime_hashes, verify_record
 runtime, root, destination = map(Path,sys.argv[1:])
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
@@ -89,11 +89,11 @@ def is_ocean(latitude, longitude):
                 previous = x, lat
     return crossings % 2 == 0
 
-def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown, original, max_miss_km=None):
+def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown, original, hz, max_miss_km=None):
     sequence_seconds = sequence_met - start_met
     with (case/'evidence/input-events.csv').open() as stream:
         presses = [int(r['tick']) for r in csv.DictReader(stream) if r['key'] == '57' and r['down'] == '1']
-    assert presses == [round(sequence_seconds * 16)], (case, presses)
+    assert presses == [round(sequence_seconds * hz)], (case, presses)
     with (case/'evidence/lifetime-events.csv').open() as stream:
         covers = [(r['object'], float(r['seconds'])) for r in csv.DictReader(stream)
                   if r['phase'] == 'module.library.open' and r['object'].startswith(f'{ship} Retrocover ')]
@@ -164,7 +164,7 @@ for name,ship,phase in cases:
             first=first or row;last=row;rows+=1
             altitude=float(row['altitude_mean']);minimum=min(minimum,altitude);maximum=max(maximum,altitude)
             if linked_return and phase == 'recovery':
-                if float(row['seconds']) == sequence_met - start_met + 60:
+                if int(row['tick']) == round((sequence_met - start_met + 60) * entry_hz(mission)):
                     after_burn = row
                 if touchdown is None and row['ground'] == '1':
                     touchdown = row
@@ -200,7 +200,7 @@ for name,ship,phase in cases:
             assert start_met == checkpoint_met, name
             assert console.index('Drogue deployed') < console.index('Main deployed') < console.index('sep main on contact'), name
             result.update(verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown,
-                                            root/f'{mission}-launch'/'input.scn',
+                                            root/f'{mission}-launch'/'input.scn', entry_hz(mission),
                                             max_miss_km=50 if mission == 'faith7' else None))
             if mission == 'faith7':
                 result['command_offset_from_historical_s'] = sequence_met - FAITH7_HISTORICAL_MET

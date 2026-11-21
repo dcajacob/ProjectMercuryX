@@ -8,10 +8,10 @@ import re
 import shutil
 import subprocess
 
-from orbital_returns import sequence_met
+from orbital_returns import FAITH7_HZ, sequence_met
 
 
-STEP = 1 / 16
+STEP = 1 / FAITH7_HZ
 SPACE = 57
 RUNNER = Path(__file__).with_name('run-session.sh')
 
@@ -83,7 +83,7 @@ def check_armed(save, ship, remaining, cover_mask):
 def state_at(case, ship, seconds):
     with (case/'evidence/flight-state.csv').open() as stream:
         for row in csv.DictReader(stream):
-            if row['object'] == ship and float(row['seconds']) == seconds:
+            if row['object'] == ship and int(row['tick']) == round(seconds / STEP):
                 return row
     raise ValueError(f'{case}: missing state for {ship} at {seconds} seconds')
 
