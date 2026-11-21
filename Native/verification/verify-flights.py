@@ -7,7 +7,7 @@ import json
 import math
 import re
 import sys
-from orbital_returns import CHECKPOINT_MET, sequence_met as planned_sequence_met
+from orbital_returns import CHECKPOINT_MET, FAITH7_HISTORICAL_MET, sequence_met as planned_sequence_met
 from runtime_provenance import runtime_hashes, verify_record
 runtime, root, destination = map(Path,sys.argv[1:])
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
@@ -22,6 +22,48 @@ def orbit(row):
     h=[r[1]*v[2]-r[2]*v[1],r[2]*v[0]-r[0]*v[2],r[0]*v[1]-r[1]*v[0]]
     e=math.sqrt(max(0,1-sum(x*x for x in h)/(mu*a)))
     return {'perigee_km':(a*(1-e)-earth_radius)/1000,'apogee_km':(a*(1+e)-earth_radius)/1000}
+
+def faith7_inclination(case, state):
+    # Positions/velocities are ecliptic and Orbiter uses left-handed axes.
+    # Column two of the obliquity matrix is Earth's north pole in that frame.
+    with (case/'evidence/ground-math.csv').open() as stream:
+        earth = next(r for r in csv.DictReader(stream) if r['tick'] == state['tick'])
+    r = [float(state['r' + axis]) for axis in 'xyz']
+    v = [float(state['v' + axis]) for axis in 'xyz']
+    h = [v[1]*r[2] - v[2]*r[1], v[2]*r[0] - v[0]*r[2], v[0]*r[1] - v[1]*r[0]]
+    cosine = sum(h[i] * float(earth[f'obliquity{i+1}2']) for i in range(3)) / math.hypot(*h)
+    inclination = math.degrees(math.acos(cosine))
+    if abs(inclination - 32.55) > 0.1:
+        raise ValueError(f'Faith 7 insertion inclination {inclination:.3f} degrees, expected 32.55 ± 0.10')
+    return inclination
+
+
+def faith7_first_orbit(case):
+    # With harmonics on, two-body osculating apsides at insertion are not
+    # the altitudes the capsule reaches. Measure both from the linked coast.
+    period = 88 * 60 + 45
+    perigee = math.inf
+    peaks = [(-math.inf, 0), (-math.inf, 0)]
+    with (case/'evidence/flight-state.csv').open() as stream:
+        for row in csv.DictReader(stream):
+            if row['object'] != 'MA-9':
+                continue
+            t = float(row['seconds'])
+            if t >= 2 * period:
+                break
+            altitude = float(row['altitude_mean']) / 1000
+            window = int(t // period)
+            peaks[window] = max(peaks[window], (altitude, t))
+            if window == 0:
+                perigee = min(perigee, altitude)
+    apogee = peaks[0][0]
+    measured_period = peaks[1][1] - peaks[0][1]
+    if not (abs(perigee - 161.42) <= 3 and abs(apogee - 266.99) <= 5 and abs(measured_period - period) <= 10):
+        raise ValueError(f'Faith 7 observed orbit {perigee:.2f} x {apogee:.2f} km, '
+                         f'apogee-to-apogee period {measured_period:.2f} s')
+    return dict(first_orbit_perigee_km=perigee, first_orbit_apogee_km=apogee,
+                apogee_to_apogee_period_s=measured_period)
+
 
 def saved_met(path):
     return int(re.search(r'^  MET (\d+)$', path.read_text(), re.M)[1])
@@ -140,6 +182,10 @@ for name,ship,phase in cases:
         if phase=='insertion':assert 'GO for orbit!' in console,name
         if phase=='coast':assert minimum>140000 and maximum<350000,name
         result.update(measured)
+        if name == 'faith7-launch':
+            result['insertion_inclination_deg'] = faith7_inclination(case, last)
+        elif name == 'faith7-coast':
+            result.update(faith7_first_orbit(case))
         if linked_return:
             assert result['simulated_seconds'] == checkpoint_met - start_met, name
             assert saved_met(case/'saved.scn') == checkpoint_met, name
@@ -156,6 +202,8 @@ for name,ship,phase in cases:
             result.update(verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown,
                                             root/f'{mission}-launch'/'input.scn',
                                             max_miss_km=50 if mission == 'faith7' else None))
+            if mission == 'faith7':
+                result['command_offset_from_historical_s'] = sequence_met - FAITH7_HISTORICAL_MET
     else:assert 100000<float(last['altitude_mean'])<220000,name
     results.append(result)
 report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'private PulseAudio null sink at 5%',

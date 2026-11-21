@@ -2,6 +2,7 @@
 """Install the original v3.1 assets without overwriting a shared template inode."""
 from pathlib import Path, PurePosixPath
 import hashlib
+import re
 import shutil
 import sys
 import zipfile
@@ -27,3 +28,27 @@ entry='DIR Earth\\Base\\ProjectMercury CONTEXT MercuryBases'
 if entry not in s:
     s=s.replace('BEGIN_SURFBASE','BEGIN_SURFBASE\n'+entry)
     earth.unlink();earth.write_text(s)
+
+# Faith 7's geographic recovery target belongs to the landing computer. For
+# ascent the historical mission used a 32.55-degree orbital inclination.
+historical = runtime/'resources/Scenarios/Project Mercury/Historical launch scenarios'
+for folder in (historical, historical/'Possible failures'):
+    scenario = folder/'6. Launch of Faith 7.scn'
+    data = scenario.read_bytes()
+    target = b'  MISSIONLANDLONG -176.588\r\n'
+    if data.count(target) != 1:
+        raise ValueError(f'{scenario}: expected one original MA-9 recovery target')
+    scenario.write_bytes(data.replace(target, target + b'  INCLINATION 32.55\r\n'))
+
+# The stock default is spherical Earth. The dedicated Mercury profile needs
+# both the latitude-dependent gravity and the nodal drift over a day in orbit.
+config = runtime/'Orbiter.cfg'
+settings = config.read_text()
+gravity = 'NonsphericalGravitySources = TRUE'
+updated, count = re.subn(r'^[ \t]*NonsphericalGravitySources[ \t]*=.*$', gravity, settings,
+                         flags=re.IGNORECASE | re.MULTILINE)
+if not count:
+    updated = settings.rstrip('\n') + '\n' + gravity + '\n'
+if updated != settings:
+    config.unlink()  # The private runtime may link to a shared template.
+    config.write_text(updated)

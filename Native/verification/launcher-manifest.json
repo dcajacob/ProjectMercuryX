@@ -46,7 +46,7 @@
   },
   {
     "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/6. Launch of Faith 7.scn",
-    "scenario_sha256": "454fc6b19bccedece45c27832368a8f065ad6056633507d19f2bddd2712971bf",
+    "scenario_sha256": "c004927aa2dbb1bcbae2c91215ed76e8ce6d0d3a24cfb33d4d5f2ab1cc01d07e",
     "module": [
       "ProjectMercury/ProjectMercuryAtlas.so",
       "ProjectMercury/Mercury_LC14.so"

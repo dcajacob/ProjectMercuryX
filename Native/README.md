@@ -161,21 +161,32 @@ for entry. Aurora 7 and Sigma 7 command retrosequence at 04:32:36.5 and
 The verifier checks the 30-second delay, five-second motor spacing, post-burn
 perigee below 60 km, both chutes and first ocean contact.
 
-**Faith 7 recovery.** Save 09 is the verified insertion orbit. Its apogee is
-298 km and its inclination is 28.96°. The original mission description gives
-267 km and 32.55°. At the historical 33:58:59 command the simulated capsule
-splashed down at 28.9193° N, 142.5729° E, 3,988 km from the ship. The panel
-had no solution on that pass. The linked replay uses the preceding Pacific
-pass. Open save 14 at 32:21:40 and press Space at the panel's retrosequence
-time (32:34:04 on the verified save). The capsule fires all three motors and
-splashes down near 27.13° N, 176.71° W. The target in the original scenario is
-27.377° N, 176.588° W.
+**Faith 7 launch and recovery.** The private Mercury profile enables nonspherical
+Earth gravity. Asset staging adds the documented `INCLINATION 32.55` ascent
+setting to the nominal and possible-failures MA-9 launch scenarios. The
+publisher's scenarios supply the recovery coordinates and mention 32.55° in
+the mission history, but omit the ascent setting. Mercury normally uses the
+recovery coordinates to select the launch plane when that setting is absent.
+The landing computer continues to target 27.377° N, 176.588° W.
 
-CI reads the Atlas panel's geographic solution at the end of the coast and
-fails if the panel gives no upcoming time. It measures the great-circle miss
-from the focus capsule's first ocean contact to the original scenario target.
-The 50 km regression limit applies to this native Faith 7 replay. The report
-includes the command time, target, first-contact coordinates and miss distance.
+Launch MA-9 from LC-14 with **P** at the end of the original countdown. The
+replay uses the normal launcher's 60 Hz physics step through insertion. At
+the previous 16 Hz replay rate, each late ascent step could add several
+metres per second before the simulator applied cutoff. Save **09** is the
+resulting orbit. CI measures its equatorial inclination from the capsule state
+and Earth's pole. On the linked coast it measures the first actual perigee and
+apogee above Orbiter's mean Earth radius and the time between consecutive apogees.
+The regression limits are 32.55° ± 0.10°, 161.42 ± 3 km, 266.99 ± 5 km, and
+88 min 45 s ± 10 s. Two-body osculating elements are also available in the
+report and can differ from the observed altitude extrema under nonspherical gravity.
+
+Save **14** starts at MET 33:53:59, five minutes before the historical
+33:58:59 retrosequence. Press **Space** at the panel's indicated time. CI
+requires a panel solution within five minutes of the historical time and
+a first ocean contact within 50 km of the original target. Save **15** opens
+at splashdown. The machine-readable report includes the clock offset, first
+contact, target coordinates, and great-circle miss. The times and historical
+apsides are in [NASA Historical Data Book, table 2-35](https://www.nasa.gov/wp-content/uploads/2023/04/sp-4012v2.pdf).
 
 The replays fly nominal controls. Historical equipment failures, landing-site
 accuracy for other missions, Little Joe/Scout flights, Windows/macOS builds and

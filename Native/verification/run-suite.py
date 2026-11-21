@@ -37,7 +37,7 @@ first=[('freedom7-launch',mission(1),4800,.0625,[(960,25)]),
        ('libertybell7-flight',mission(2),24000,.0625,[(960,25),(5504,57)]),
        ('aurora7-launch',mission(4),14400,.0625,[(960,25)]),
        ('sigma7-launch',mission(5),14400,.0625,[(960,25)]),
-       ('faith7-launch',mission(6),14400,.0625,[(960,25)])]
+       ('faith7-launch',mission(6),900*60,1/60,[(60*60,25)],1024)]
 with ThreadPoolExecutor(max_workers=3) as pool:
     list(pool.map(lambda args:run(*args),first))
 with ThreadPoolExecutor(max_workers=2) as pool:
