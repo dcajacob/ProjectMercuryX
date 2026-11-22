@@ -28,7 +28,7 @@
   },
   {
     "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/4. Launch of Aurora 7.scn",
-    "scenario_sha256": "1097a92d43a6de28665261ecc593515a7334559ca80ab60f74dbcee4715ea3a9",
+    "scenario_sha256": "a691563d180bedafe5c75e9ac15eb1c8b306562ce5d1db9a0acb12e4069365b1",
     "module": [
       "ProjectMercury/ProjectMercuryAtlas.so",
       "ProjectMercury/Mercury_LC14.so"
@@ -37,7 +37,7 @@
   },
   {
     "scenario": "resources/Scenarios/Project Mercury/Historical launch scenarios/5. Launch of Sigma 7.scn",
-    "scenario_sha256": "af9a2d97a42b62ea67171a1498c94ef242c3dfb31a7421f83360c557c1e502db",
+    "scenario_sha256": "24b83e0e384738804b0c5349d0bec93cfbec21404ee46990a5fa0ba6dbec6fb8",
     "module": [
       "ProjectMercury/ProjectMercuryAtlas.so",
       "ProjectMercury/Mercury_LC14.so"

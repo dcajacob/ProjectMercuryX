@@ -152,33 +152,41 @@ and allows the normal 30-second delay before retrofire. Ctrl-P pauses without
 commanding the spacecraft. Original assets and generated saves stay in the local
 package; the fork contains source, checksums, replay tooling and measured results.
 
-For Aurora 7, Sigma 7 and Faith 7, select saves **10–15** for the pre-retro and
-splashdown checkpoints. Each replay coasts at a 0.125-second physics step, reloads
-its own checkpoint, then uses the normal Space command. Aurora 7 and Sigma 7
-use a 0.0625-second step for entry. Faith 7 uses the normal launcher rate of 60 Hz. Aurora 7 and Sigma 7 command retrosequence at 04:32:36.5 and
-08:51:30 mission elapsed time, following the
-[NASA Historical Data Book, volume II](https://www.nasa.gov/wp-content/uploads/2023/04/sp-4012v2.pdf).
-The verifier checks the 30-second delay, five-second motor spacing, post-burn
-perigee below 60 km, both chutes and first ocean contact.
+**Atlas insertion and recovery.** Launch Aurora 7, Sigma 7 or Faith 7 from LC-14
+with **P** at the end of the original countdown. The publisher's three mission
+histories specify 32.55° inclination. Their scenario inputs supply geographic
+recovery coordinates and omit the ascent inclination, which lets Mercury use
+the recovery position to choose the launch plane. Asset staging adds
+`INCLINATION 32.55` to the nominal and possible-failures launch scenarios.
+The landing computer keeps each scenario's original recovery coordinates.
 
-**Faith 7 launch and recovery.** The private Mercury profile enables nonspherical
-Earth gravity. Asset staging adds the documented `INCLINATION 32.55` ascent
-setting to the nominal and possible-failures MA-9 launch scenarios. The
-publisher's scenarios supply the recovery coordinates and mention 32.55° in
-the mission history, but omit the ascent setting. Mercury normally uses the
-recovery coordinates to select the launch plane when that setting is absent.
-The landing computer continues to target 27.377° N, 176.588° W.
+CI flies the nominal scenarios at the normal launcher's 60 Hz rate through
+insertion, coasts from the resulting save at 8 Hz with nonspherical Earth
+gravity, then reloads the coast save and flies retrofire and entry at 60 Hz.
+Saves **07–09** open in Earth orbit. CI checks equatorial inclination
+(32.55° ± 0.10°) and measures altitude extrema above mean Earth radius on the
+first coast orbit. The time between consecutive apogees provides the period.
+The perigee, apogee and period tolerances are 3 km, 5 km and 10 s, respectively.
 
-Launch MA-9 from LC-14 with **P** at the end of the original countdown. The
-replay uses the normal launcher's 60 Hz physics step through insertion and again for retrofire and entry. At
-the previous 16 Hz replay rate, each late ascent step could add several
-metres per second before the simulator applied cutoff. Save **09** is the
-resulting orbit. CI measures its equatorial inclination from the capsule state
-and Earth's pole. On the linked coast it measures the first actual perigee and
-apogee above Orbiter's mean Earth radius and the time between consecutive apogees.
-The regression limits are 32.55° ± 0.10°, 161.42 ± 3 km, 266.99 ± 5 km, and
-88 min 45 s ± 10 s. Two-body osculating elements are also available in the
-report and can differ from the observed altitude extrema under nonspherical gravity.
+| Mission and recovery pass | Reference orbit, km | Reference period | Pre-retro / splashdown saves | Verified Space command, MET | First contact from scenario target / CI limit |
+|---|---:|---:|---|---:|---:|
+| Aurora 7, orbit 3 | 160.84 × 268.55 | 88 min 32 s | 10 / 11 | 04:33:12 | 66.3 / 75 km |
+| Sigma 7, orbit 6 | 161.00 × 283.04 | 88 min 55 s | 12 / 13 | 08:51:21 | 45.4 / 50 km |
+| Faith 7, orbit 22 | 161.42 × 266.99 | 88 min 45 s | 14 / 15 | 33:59:09 | 33.3 / 50 km |
+
+From each pre-retro save, press **Space** at the displayed cockpit retrosequence
+time. CI reads the panel at the checkpoint, requires a command within 60 s of
+the historical event, and checks the 30 s delay, five-second motor spacing,
+post-burn perigee below 60 km, both chutes, and the first ocean contact.
+The recovery limits in the table are simulator regression tolerances.
+
+Aurora 7's scenario coordinate (19.45° N, 63.83° W) is near Carpenter's actual
+splashdown. NASA records that he landed about 400 km from the intended point.
+This nominal replay uses the scenario coordinate and normal spacecraft systems.
+Sigma 7 targets 32.10° N, 174.47° W. As a timing comparison, commanding at the
+published event times of 04:32:36.5 and 08:51:30 yielded simulated misses of
+356.6 and 41.3 km respectively. The references are in the
+[NASA Historical Data Book, volume II, tables 2-33 to 2-35](https://www.nasa.gov/wp-content/uploads/2023/04/sp-4012v2.pdf).
 
 Save **14** starts at MET 33:58:29. Read the cockpit clock and press **Space**
 at **33:59:09** on the verified replay, ten seconds after the historical

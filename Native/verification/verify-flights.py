@@ -7,7 +7,7 @@ import json
 import math
 import re
 import sys
-from orbital_returns import CHECKPOINT_MET, FAITH7_HISTORICAL_MET, entry_hz, sequence_met as planned_sequence_met
+from orbital_returns import CHECKPOINT_MET, FLIGHT_HZ, MISSIONS, sequence_met as planned_sequence_met
 from runtime_provenance import runtime_hashes, verify_record
 runtime, root, destination = map(Path,sys.argv[1:])
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
@@ -23,7 +23,7 @@ def orbit(row):
     e=math.sqrt(max(0,1-sum(x*x for x in h)/(mu*a)))
     return {'perigee_km':(a*(1-e)-earth_radius)/1000,'apogee_km':(a*(1+e)-earth_radius)/1000}
 
-def faith7_inclination(case, state):
+def insertion_inclination(case, state):
     # Positions/velocities are ecliptic and Orbiter uses left-handed axes.
     # Column two of the obliquity matrix is Earth's north pole in that frame.
     with (case/'evidence/ground-math.csv').open() as stream:
@@ -34,19 +34,19 @@ def faith7_inclination(case, state):
     cosine = sum(h[i] * float(earth[f'obliquity{i+1}2']) for i in range(3)) / math.hypot(*h)
     inclination = math.degrees(math.acos(cosine))
     if abs(inclination - 32.55) > 0.1:
-        raise ValueError(f'Faith 7 insertion inclination {inclination:.3f} degrees, expected 32.55 ± 0.10')
+        raise ValueError(f'{case.name} insertion inclination {inclination:.3f} degrees, expected 32.55 ± 0.10')
     return inclination
 
 
-def faith7_first_orbit(case):
+def first_orbit(case, reference):
     # With harmonics on, two-body osculating apsides at insertion are not
     # the altitudes the capsule reaches. Measure both from the linked coast.
-    period = 88 * 60 + 45
+    period = reference.period_s
     perigee = math.inf
     peaks = [(-math.inf, 0), (-math.inf, 0)]
     with (case/'evidence/flight-state.csv').open() as stream:
         for row in csv.DictReader(stream):
-            if row['object'] != 'MA-9':
+            if row['object'] != reference.ship:
                 continue
             t = float(row['seconds'])
             if t >= 2 * period:
@@ -58,8 +58,8 @@ def faith7_first_orbit(case):
                 perigee = min(perigee, altitude)
     apogee = peaks[0][0]
     measured_period = peaks[1][1] - peaks[0][1]
-    if not (abs(perigee - 161.42) <= 3 and abs(apogee - 266.99) <= 5 and abs(measured_period - period) <= 10):
-        raise ValueError(f'Faith 7 observed orbit {perigee:.2f} x {apogee:.2f} km, '
+    if not (abs(perigee - reference.perigee_km) <= 3 and abs(apogee - reference.apogee_km) <= 5 and abs(measured_period - period) <= 10):
+        raise ValueError(f'{case.name} observed orbit {perigee:.2f} x {apogee:.2f} km, '
                          f'apogee-to-apogee period {measured_period:.2f} s')
     return dict(first_orbit_perigee_km=perigee, first_orbit_apogee_km=apogee,
                 apogee_to_apogee_period_s=measured_period)
@@ -164,7 +164,7 @@ for name,ship,phase in cases:
             first=first or row;last=row;rows+=1
             altitude=float(row['altitude_mean']);minimum=min(minimum,altitude);maximum=max(maximum,altitude)
             if linked_return and phase == 'recovery':
-                if int(row['tick']) == round((sequence_met - start_met + 60) * entry_hz(mission)):
+                if int(row['tick']) == round((sequence_met - start_met + 60) * FLIGHT_HZ):
                     after_burn = row
                 if touchdown is None and row['ground'] == '1':
                     touchdown = row
@@ -182,10 +182,10 @@ for name,ship,phase in cases:
         if phase=='insertion':assert 'GO for orbit!' in console,name
         if phase=='coast':assert minimum>140000 and maximum<350000,name
         result.update(measured)
-        if name == 'faith7-launch':
-            result['insertion_inclination_deg'] = faith7_inclination(case, last)
-        elif name == 'faith7-coast':
-            result.update(faith7_first_orbit(case))
+        if mission in MISSIONS and phase == 'insertion':
+            result['insertion_inclination_deg'] = insertion_inclination(case, last)
+        elif mission in MISSIONS and phase == 'coast':
+            result.update(first_orbit(case, MISSIONS[mission]))
         if linked_return:
             assert result['simulated_seconds'] == checkpoint_met - start_met, name
             assert saved_met(case/'saved.scn') == checkpoint_met, name
@@ -200,10 +200,9 @@ for name,ship,phase in cases:
             assert start_met == checkpoint_met, name
             assert console.index('Drogue deployed') < console.index('Main deployed') < console.index('sep main on contact'), name
             result.update(verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown,
-                                            root/f'{mission}-launch'/'input.scn', entry_hz(mission),
-                                            max_miss_km=50 if mission == 'faith7' else None))
-            if mission == 'faith7':
-                result['command_offset_from_historical_s'] = sequence_met - FAITH7_HISTORICAL_MET
+                                            root/f'{mission}-launch'/'input.scn', FLIGHT_HZ,
+                                            max_miss_km=MISSIONS[mission].recovery_limit_km))
+            result['command_offset_from_historical_s'] = sequence_met - MISSIONS[mission].historical_sequence_met
     else:assert 100000<float(last['altitude_mean'])<220000,name
     results.append(result)
 report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'private PulseAudio null sink at 5%',
@@ -214,7 +213,7 @@ report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'priva
         'runtime_sha256':build_hashes,
         'flight_replays':results,
         'limitations':['Historical accuracy and Windows numerical parity are not yet qualified.',
-                       'The orbital returns use nominal spacecraft systems. Historical failures and recovery-site accuracy for missions other than Faith 7 are unqualified.',
+                       'The orbital returns use nominal spacecraft systems. Distances are measured against the original scenario coordinates. Historical equipment failures are unqualified.',
                        'Little Joe and Scout modules build; their flight sequences are not yet qualified.',
                        'Windows and macOS add-on builds are not yet tested.']}
 destination.parent.mkdir(parents=True,exist_ok=True)

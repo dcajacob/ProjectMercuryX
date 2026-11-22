@@ -1,40 +1,38 @@
-"""Pilot retrosequence planning for the linked native Mercury replay saves."""
+"""Mission references for the linked Mercury insertion and recovery replays."""
+from dataclasses import dataclass
 import re
 
-# NASA SP-4012 vol. II, tables 2-33 and 2-34. These two replays exercise
-# historical command times. Faith 7 uses the capsule's geographic landing mode.
-HISTORICAL_SEQUENCE_MET = {
-    'aurora7': 4 * 3600 + 32 * 60 + 36.5,
-    'sigma7': 8 * 3600 + 51 * 60 + 30,
+
+@dataclass(frozen=True)
+class Mission:
+    ship: str
+    historical_sequence_met: float
+    perigee_km: float
+    apogee_km: float
+    period_s: int
+    recovery_limit_km: int
+
+
+# NASA SP-4012 vol. II, tables 2-33 through 2-35. Recovery limits are
+# regression tolerances against the original scenario's coordinates.
+MISSIONS = {
+    'aurora7': Mission('MA-7', 4*3600 + 32*60 + 36.5, 160.84, 268.55, 5312, 75),
+    'sigma7': Mission('MA-8', 8*3600 + 51*60 + 30, 161.0, 283.04, 5335, 50),
+    'faith7': Mission('MA-9', 33*3600 + 58*60 + 59, 161.42, 266.99, 5325, 50),
 }
-
-CHECKPOINT_MET = {mission: int(met) - 300 for mission, met in HISTORICAL_SEQUENCE_MET.items()}
-# Consult the panel 30 seconds before the historical event (NASA SP-4012
-# vol. II, table 2-35). Its earlier five-minute prediction is still changing.
-FAITH7_HISTORICAL_MET = 33 * 3600 + 58 * 60 + 59
-CHECKPOINT_MET['faith7'] = FAITH7_HISTORICAL_MET - 30
-
-
-# Frequency of the normal OpenGL launcher. Use it on both powered legs of MA-9.
-FAITH7_HZ = 60
-
-
-def entry_hz(mission):
-    return FAITH7_HZ if mission == 'faith7' else 16
+CHECKPOINT_MET = {name: int(m.historical_sequence_met) - 30 for name, m in MISSIONS.items()}
+FLIGHT_HZ = 60
 
 
 def sequence_met(mission, coast):
-    if mission in HISTORICAL_SEQUENCE_MET:
-        return HISTORICAL_SEQUENCE_MET[mission]
-    if mission != 'faith7':
-        raise ValueError(f'Unknown Mercury return: {mission}')
+    reference = MISSIONS[mission]
     met = CHECKPOINT_MET[mission]
     log = (coast/'console.log').read_text(errors='replace')
-    clocks = re.findall(rf'^Mercury recovery clock MA-9 MET {met} sequence (\d+):(\d+):(\d+)$', log, re.M)
+    clocks = re.findall(rf'^Mercury recovery clock {reference.ship} MET {met} sequence (\d+):(\d+):(\d+)$', log, re.M)
     if not clocks:
-        raise ValueError(f'{coast}: missing MA-9 panel recommendation at MET {met}')
+        raise ValueError(f'{coast}: missing {reference.ship} panel recommendation at MET {met}')
     hours, minutes, seconds = map(int, clocks[-1])
     command = hours * 3600 + minutes * 60 + seconds
-    if minutes >= 60 or seconds >= 60 or not met < command <= FAITH7_HISTORICAL_MET + 60:
-        raise ValueError(f'{coast}: no upcoming recovery solution at MET {met}: {clocks[-1]}')
+    if minutes >= 60 or seconds >= 60 or command <= met or abs(command - reference.historical_sequence_met) > 60:
+        raise ValueError(f'{coast}: no upcoming solution on the historical pass at MET {met}: {clocks[-1]}')
     return command

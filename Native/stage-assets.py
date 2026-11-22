@@ -29,16 +29,18 @@ if entry not in s:
     s=s.replace('BEGIN_SURFBASE','BEGIN_SURFBASE\n'+entry)
     earth.unlink();earth.write_text(s)
 
-# Faith 7's geographic recovery target belongs to the landing computer. For
-# ascent the historical mission used a 32.55-degree orbital inclination.
+# These missions specify a recovery coordinate and describe a 32.55-degree
+# launch plane. Give the ascent pilot the inclination independently of recovery.
 historical = runtime/'resources/Scenarios/Project Mercury/Historical launch scenarios'
 for folder in (historical, historical/'Possible failures'):
-    scenario = folder/'6. Launch of Faith 7.scn'
-    data = scenario.read_bytes()
-    target = b'  MISSIONLANDLONG -176.588\r\n'
-    if data.count(target) != 1:
-        raise ValueError(f'{scenario}: expected one original MA-9 recovery target')
-    scenario.write_bytes(data.replace(target, target + b'  INCLINATION 32.55\r\n'))
+    for title, longitude in [('4. Launch of Aurora 7', '-63.83'), ('5. Launch of Sigma 7', '-174.47'),
+                             ('6. Launch of Faith 7', '-176.588')]:
+        scenario = folder/(title + '.scn')
+        data = scenario.read_bytes()
+        target = f'  MISSIONLANDLONG {longitude}\r\n'.encode()
+        if data.count(target) != 1:
+            raise ValueError(f'{scenario}: expected one original recovery target')
+        scenario.write_bytes(data.replace(target, target + b'  INCLINATION 32.55\r\n'))
 
 # The stock default is spherical Earth. The dedicated Mercury profile needs
 # both the latitude-dependent gravity and the nodal drift over a day in orbit.
