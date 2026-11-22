@@ -68,8 +68,8 @@ by this work.
 Run `launch-orbiter`, select **Project Mercury → Historical launch scenarios**,
 choose a mission and click Launch. Resize, pause/resume and Ctrl-S quicksave use
 the normal launcher and native engine. Press **P** to start the launch autopilot.
-For the original countdown scenarios, wait 60 simulated seconds before pressing
-P. Atlas includes the pad hold-down interval.
+For Aurora 7, press **P** 57 seconds into the countdown (T−3). The verified
+replays for the other missions press **P** after 60 seconds.
 
 **Space** commands the Mercury retrosequence in free flight, with the normal
 30-second delay before retrofire. **Ctrl-P** pauses. The original panel switches,
@@ -170,7 +170,7 @@ The perigee, apogee and period tolerances are 3 km, 5 km and 10 s, respectively.
 
 | Mission and recovery pass | Reference orbit, km | Reference period | Pre-retro / splashdown saves | Verified Space command, MET | First contact from scenario target / CI limit |
 |---|---:|---:|---|---:|---:|
-| Aurora 7, orbit 3 | 160.84 × 268.55 | 88 min 32 s | 10 / 11 | 04:33:12 | 66.3 / 75 km |
+| Aurora 7, orbit 3 | 160.84 × 268.55 | 88 min 32 s | 10 / 11 | 04:33:12 | 66.6 / 50 km (fails) |
 | Sigma 7, orbit 6 | 161.00 × 283.04 | 88 min 55 s | 12 / 13 | 08:51:21 | 45.4 / 50 km |
 | Faith 7, orbit 22 | 161.42 × 266.99 | 88 min 45 s | 14 / 15 | 33:59:09 | 33.3 / 50 km |
 
@@ -179,6 +179,9 @@ time. CI reads the panel at the checkpoint, requires a command within 60 s of
 the historical event, and checks the 30 s delay, five-second motor spacing,
 post-burn perigee below 60 km, both chutes, and the first ocean contact.
 The recovery limits in the table are simulator regression tolerances.
+
+The MA-7 countdown begins at 12:44:16 UTC. Press **P** at T−3 s. The nominal
+replay misses the 50 km gate even with the corrected launch epoch.
 
 Aurora 7's scenario coordinate (19.45° N, 63.83° W) is near Carpenter's actual
 splashdown. NASA records that he landed about 400 km from the intended point.

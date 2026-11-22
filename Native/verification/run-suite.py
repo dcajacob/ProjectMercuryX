@@ -35,8 +35,8 @@ def mission(number):return next(originals.glob(f'{number}.*.scn'))
 first=[('freedom7-launch',mission(1),4800,.0625,[(960,25)]),
        ('friendship7-launch',mission(3),14400,.0625,[(960,25)]),
        ('libertybell7-flight',mission(2),24000,.0625,[(960,25),(5504,57)])]
-for number, name in [(4, 'aurora7'), (5, 'sigma7'), (6, 'faith7')]:
-    first.append((f'{name}-launch', mission(number), 900*FLIGHT_HZ, 1/FLIGHT_HZ, [(60*FLIGHT_HZ, 25)], 1024))
+for number, name, ignition_s in [(4, 'aurora7', 57), (5, 'sigma7', 60), (6, 'faith7', 60)]:
+    first.append((f'{name}-launch', mission(number), 900*FLIGHT_HZ, 1/FLIGHT_HZ, [(ignition_s*FLIGHT_HZ, 25)], 1024))
 with ThreadPoolExecutor(max_workers=3) as pool:
     list(pool.map(lambda args:run(*args),first))
 with ThreadPoolExecutor(max_workers=2) as pool:

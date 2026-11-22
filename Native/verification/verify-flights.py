@@ -7,7 +7,7 @@ import json
 import math
 import re
 import sys
-from orbital_returns import CHECKPOINT_MET, FLIGHT_HZ, MISSIONS, sequence_met as planned_sequence_met
+from orbital_returns import CHECKPOINT_MET, FLIGHT_HZ, MISSIONS, RECOVERY_LIMIT_KM, sequence_met as planned_sequence_met
 from runtime_provenance import runtime_hashes, verify_record
 runtime, root, destination = map(Path,sys.argv[1:])
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
@@ -201,7 +201,7 @@ for name,ship,phase in cases:
             assert console.index('Drogue deployed') < console.index('Main deployed') < console.index('sep main on contact'), name
             result.update(verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown,
                                             root/f'{mission}-launch'/'input.scn', FLIGHT_HZ,
-                                            max_miss_km=MISSIONS[mission].recovery_limit_km))
+                                            max_miss_km=RECOVERY_LIMIT_KM))
             result['command_offset_from_historical_s'] = sequence_met - MISSIONS[mission].historical_sequence_met
     else:assert 100000<float(last['altitude_mean'])<220000,name
     results.append(result)

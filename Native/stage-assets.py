@@ -37,6 +37,12 @@ for folder in (historical, historical/'Possible failures'):
                              ('6. Launch of Faith 7', '-176.588')]:
         scenario = folder/(title + '.scn')
         data = scenario.read_bytes()
+        if title == '4. Launch of Aurora 7':
+            # The original file starts at liftoff UTC, with its clock at T-60.
+            epoch = b'  Date MJD 37808.531435\r\n'
+            if data.count(epoch) != 1:
+                raise ValueError(f'{scenario}: unexpected MA-7 countdown epoch')
+            data = data.replace(epoch, b'  Date MJD 37808.5307407407\r\n')
         target = f'  MISSIONLANDLONG {longitude}\r\n'.encode()
         if data.count(target) != 1:
             raise ValueError(f'{scenario}: expected one original recovery target')
