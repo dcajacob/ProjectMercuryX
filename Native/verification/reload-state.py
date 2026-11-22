@@ -8,10 +8,10 @@ import re
 import shutil
 import subprocess
 
-from orbital_returns import FAITH7_HZ, sequence_met
+from orbital_returns import FLIGHT_HZ, sequence_met
 
 
-STEP = 1 / FAITH7_HZ
+STEP = 1 / FLIGHT_HZ
 SPACE = 57
 RUNNER = Path(__file__).with_name('run-session.sh')
 
@@ -96,10 +96,9 @@ def verify_targets(flights):
             scenario = flights/f'{mission}-{phase}'/'saved.scn'
             check_target(scenario, ship, expected)
             fields = capsule_fields(scenario, ship)
-            position_ascent = '0' if mission == 'faith7' else '1'
-            if mission == 'faith7' and float(fields['INCLINATION']) != 32.55:
-                raise ValueError(f'{scenario}: lost Faith 7 ascent inclination')
-            if fields.get('LANDINGCOMPUTER', '').split() != ['1', '0', '0', position_ascent]:
+            if float(fields['INCLINATION']) != 32.55:
+                raise ValueError(f'{scenario}: lost {ship} ascent inclination')
+            if fields.get('LANDINGCOMPUTER', '').split() != ['1', '0', '0', '0']:
                 raise ValueError(f'{scenario}: expected the original geographic targeting mode for {ship}')
         targets[mission] = dict(orbits=expected[0], latitude=expected[1], longitude=expected[2])
         print(f'PASS {ship} recovery target through insertion, coast and recovery: {expected}', flush=True)
