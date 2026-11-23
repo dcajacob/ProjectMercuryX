@@ -184,7 +184,9 @@ The MA-7 countdown begins at 12:44:16 UTC. Press **P** at T−3 s. The nominal
 recovery regression retains its 75 km tolerance against the scenario target.
 
 **Carpenter reconstruction.** Select **Project Mercury → Reconstructions →
-Aurora 7 - Carpenter retrofire**. Fly the same countdown, then command
+Aurora 7 - Carpenter retrofire**. Start the pad sequence at 12:45:13.57 UTC.
+NASA used 12:45:16.00 UTC as range zero and recorded liftoff 0.57 s later.
+CI uses the scenario date and telemetry timestamps across reloads. Command
 retrosequence at MET 04:32:36.5. The replay imposes the radar-reconstructed
 mean capsule attitude during motor firing and uses the reconstructed total
 impulse. It approximates the pilot's varying attitude during those seconds.

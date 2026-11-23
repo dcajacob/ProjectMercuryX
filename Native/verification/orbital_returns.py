@@ -23,6 +23,19 @@ MISSIONS['carpenter'] = MISSIONS['aurora7']  # Same ascent and coast, reconstruc
 CHECKPOINT_MET = {name: int(m.historical_sequence_met) - 30 for name, m in MISSIONS.items()}
 FLIGHT_HZ = 60
 RECOVERY_LIMIT_KM = 50
+CARPENTER_LIFTOFF_RANGE_S = 0.57
+
+
+# TN D-3814, p. 2: event times are elapsed from range zero at 12:45:16 UTC.
+def carpenter_range_time(mjd):
+    return (float(mjd) - 37808) * 86400 - (12 * 3600 + 45 * 60 + 16)
+
+
+def replay_time(mission, scenario):
+    if mission == 'carpenter':
+        mjd = re.search(r'^  Date MJD ([\d.]+)$', scenario, re.M)[1]
+        return carpenter_range_time(mjd)
+    return int(re.search(r'^  MET (\d+)$', scenario, re.M)[1])
 
 
 def sequence_met(mission, coast):

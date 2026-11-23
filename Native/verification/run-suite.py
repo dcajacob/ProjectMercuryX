@@ -7,7 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
-from orbital_returns import CHECKPOINT_MET, FLIGHT_HZ, sequence_met
+from orbital_returns import CARPENTER_LIFTOFF_RANGE_S, CHECKPOINT_MET, FLIGHT_HZ, replay_time, sequence_met
 runtime, output = (Path(p).resolve() for p in sys.argv[1:])
 runner=Path(__file__).with_name('run-session.sh')
 originals=runtime/'resources/Scenarios/Project Mercury/Historical launch scenarios'
@@ -38,7 +38,10 @@ first=[('freedom7-launch',mission(1),4800,.0625,[(960,25)]),
 for number, name, ignition_s in [(4, 'aurora7', 57), (5, 'sigma7', 60), (6, 'faith7', 60)]:
     first.append((f'{name}-launch', mission(number), 900*FLIGHT_HZ, 1/FLIGHT_HZ, [(ignition_s*FLIGHT_HZ, 25)], 1024))
 reconstructed = originals.parent/'Reconstructions'/'Aurora 7 - Carpenter retrofire.scn'
-first.append(('carpenter-launch', reconstructed, 900*FLIGHT_HZ, 1/FLIGHT_HZ, [(57*FLIGHT_HZ, 25)], 1024))
+# The historical clock starts 0.57 s before liftoff. Allow the pad's
+# three-second hold after the pilot starts the original countdown.
+ignition_tick = round((60 + CARPENTER_LIFTOFF_RANGE_S - 3) * FLIGHT_HZ)
+first.append(('carpenter-launch', reconstructed, 900*FLIGHT_HZ, 1/FLIGHT_HZ, [(ignition_tick, 25)], 1024))
 with ThreadPoolExecutor(max_workers=3) as pool:
     list(pool.map(lambda args:run(*args),first))
 with ThreadPoolExecutor(max_workers=2) as pool:
@@ -51,14 +54,14 @@ for mission_name, checkpoint_met in CHECKPOINT_MET.items():
     orbit_save = output / f'{mission_name}-launch' / 'saved.scn'
     scenario = orbit_save.read_text()
     ship = re.search(r'^BEGIN_FOCUS\s+Ship (MA-\d+)\s+END_FOCUS$', scenario, re.M)[1]
-    start_met = int(re.search(r'^  MET (\d+)$', scenario, re.M)[1])
+    start_met = replay_time(mission_name, scenario)
     # Scenario MET is serialized in whole seconds. Keep the fractional part
     # on the entry leg, at its finer integration step.
     coast_seconds = checkpoint_met - start_met
     if coast_seconds <= 0:
         raise ValueError(f'{mission_name}: orbit save is past the coast start window')
     coast = f'{mission_name}-coast'
-    run(coast, orbit_save, coast_seconds * 8, .125, render_every=4096, coast_ship=ship,
+    run(coast, orbit_save, round(coast_seconds * 8), .125, render_every=4096, coast_ship=ship,
         trace_recovery=True)
     command_tick = round((sequence_met(mission_name, output/coast) - checkpoint_met) * FLIGHT_HZ)
     run(f'{mission_name}-retro-entry', output/coast/'saved.scn', 2000 * FLIGHT_HZ,

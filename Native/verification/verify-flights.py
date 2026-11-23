@@ -8,7 +8,7 @@ import json
 import math
 import re
 import sys
-from orbital_returns import CHECKPOINT_MET, FLIGHT_HZ, MISSIONS, RECOVERY_LIMIT_KM, sequence_met as planned_sequence_met
+from orbital_returns import CARPENTER_LIFTOFF_RANGE_S, CHECKPOINT_MET, FLIGHT_HZ, MISSIONS, RECOVERY_LIMIT_KM, carpenter_range_time, replay_time, sequence_met as planned_sequence_met
 from runtime_provenance import runtime_hashes, verify_record
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('runtime', type=Path)
@@ -73,9 +73,6 @@ def first_orbit(case, reference):
     return dict(first_orbit_perigee_km=perigee, first_orbit_apogee_km=apogee,
                 apogee_to_apogee_period_s=measured_period, first_orbit_within_limits=within_limits)
 
-
-def saved_met(path):
-    return int(re.search(r'^  MET (\d+)$', path.read_text(), re.M)[1])
 
 def is_ocean(latitude, longitude):
     # Count coastline crossings along a meridian to the North Pole (ocean).
@@ -167,10 +164,11 @@ for name,ship,phase in cases:
             assert flagged == (mission == 'carpenter'), (name, scenario, 'reconstruction mode')
     linked_return = mission in CHECKPOINT_MET and phase in ('coast', 'recovery')
     after_burn = touchdown = None
+    liftoff = None
     if linked_return:
         parent = f'{mission}-' + ('launch' if phase == 'coast' else 'coast')
         assert sha(case/'input.scn') == sha(root/parent/'saved.scn'), (name, parent)
-        start_met = saved_met(case/'input.scn')
+        start_met = replay_time(mission, (case/'input.scn').read_text())
         checkpoint_met = CHECKPOINT_MET[mission]
         if phase == 'recovery':
             sequence_met = planned_sequence_met(mission, root/parent)
@@ -178,6 +176,9 @@ for name,ship,phase in cases:
     with (case/'evidence/flight-state.csv').open() as stream:
         for row in csv.DictReader(stream):
             if row['object']!=ship:continue
+            if mission == 'carpenter' and phase == 'insertion' and liftoff is None and last:
+                if 'LC-14;' in last['attached'] and not row['attached'] and row['ground'] == '0':
+                    liftoff = carpenter_range_time(row['mjd'])
             for key in ['rx','ry','rz','vx','vy','vz','wx','wy','wz','mass','fuel','altitude_mean','airspeed']:
                 assert math.isfinite(float(row[key])),(name,key,row)
             assert float(row['mass'])>0 and float(row['fuel'])>=0,name
@@ -210,8 +211,8 @@ for name,ship,phase in cases:
                 result['result'] = 'failed'
                 print(f"{name}: measured period {result['apogee_to_apogee_period_s']:.3f} s, reference {MISSIONS[mission].period_s} s")
         if linked_return:
-            assert result['simulated_seconds'] == checkpoint_met - start_met, name
-            assert saved_met(case/'saved.scn') == checkpoint_met, name
+            assert abs(result['simulated_seconds'] - (checkpoint_met - start_met)) < 0.001, name
+            assert abs(replay_time(mission, (case/'saved.scn').read_text()) - checkpoint_met) < 0.001, name
     elif phase=='recovery':
         assert 'Drogue deployed' in console and 'Main deployed' in console and 'sep main on contact' in console,name
         assert last['ground']=='1' and abs(float(last['altitude_mean']))<3 and float(last['airspeed'])<8,name
@@ -220,7 +221,7 @@ for name,ship,phase in cases:
         assert match and 3<float(match[1])<15,name
         result['maximum_reentry_g']=float(match[1])
         if linked_return:
-            assert start_met == checkpoint_met, name
+            assert abs(start_met - checkpoint_met) < 0.001, name
             assert console.index('Drogue deployed') < console.index('Main deployed') < console.index('sep main on contact'), name
             result.update(verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown,
                                             root/f'{mission}-launch'/'input.scn', FLIGHT_HZ,
@@ -228,7 +229,33 @@ for name,ship,phase in cases:
                                             carpenter=mission == 'carpenter'))
             result['command_offset_from_historical_s'] = sequence_met - MISSIONS[mission].historical_sequence_met
     else:assert 100000<float(last['altitude_mean'])<220000,name
+    if mission == 'carpenter' and phase == 'insertion':
+        # Use the simulator date of each detached vessel's appearance. The
+        # Mercury console's T+ labels use the spacecraft's own clock.
+        events = {f'{ship} abort tower': ('tower_release', 152.2),
+                  f'{ship} Atlas core': ('spacecraft_separation', 312.2)}
+        chronology = {}
+        with (case/'evidence/lifetime-events.csv').open() as stream:
+            for row in csv.DictReader(stream):
+                if row['phase'] == 'module.library.open' and row['object'] in events:
+                    event, reference = events[row['object']]
+                    elapsed = carpenter_range_time(row['mjd'])
+                    chronology[event] = dict(range_time_s=elapsed, nasa_s=reference, difference_s=elapsed-reference)
+        assert len(chronology) == len(events), (case, chronology)
+        assert liftoff is not None, (name, 'missing pad release')
+        chronology['liftoff'] = dict(range_time_s=liftoff, nasa_s=CARPENTER_LIFTOFF_RANGE_S,
+                                     difference_s=liftoff-CARPENTER_LIFTOFF_RANGE_S)
+        if abs(liftoff - CARPENTER_LIFTOFF_RANGE_S) > 2.5 / FLIGHT_HZ:
+            result['result'] = 'failed'
+        result['ascent_chronology'] = chronology
     if mission == 'carpenter' and phase == 'recovery':
+        with (case/'evidence/lifetime-events.csv').open() as stream:
+            ignition_times = [carpenter_range_time(row['mjd']) for row in csv.DictReader(stream)
+                              if row['phase'] == 'module.library.open' and row['object'].startswith(f'{ship} Retrocover ')]
+        assert len(ignition_times) == 3, ignition_times
+        assert all(abs(a-b) <= .05 for a,b in zip(ignition_times, (16390.3, 16395.3, 16400.5))), ignition_times
+        result['retro_motor_range_time_s'] = ignition_times
+        result['first_contact_range_time_s'] = carpenter_range_time(touchdown['mjd'])
         distance = result['distance_to_historical_splashdown_km']
         if distance > RECOVERY_LIMIT_KM:
             result['result'] = 'failed'
