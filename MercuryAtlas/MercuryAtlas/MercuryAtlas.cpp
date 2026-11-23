@@ -22,6 +22,7 @@
 
 #include "MercuryAtlas.h"
 #include "../../FunctionsForOrbiter2016.h"
+#define MERCURY_ATLAS_RECONSTRUCTION
 #include "../../MercuryCapsule.h"
 #include <fstream> // debug, for appending entry data to file
 
@@ -652,8 +653,30 @@ void ProjectMercury::clbkPostCreation()
 	}
 }
 
+// Replay the effective attitude inferred from MA-7 tracking during the 1962
+// burn. This playback does not read the landing coordinates or steer entry.
+void ProjectMercury::ApplyCarpenterRetroAttitude(double simt)
+{
+    if (CapsuleVersion != AURORA7 || VesselStatus != FLIGHT || !engageRetro ||
+        simt < retroStartTime - 0.25 || simt > retroStartTime + 10.2 + 11.5) return;
+
+    VECTOR3 position, velocity;
+    GetRelativePos(GetSurfaceRef(), position);
+    GetRelativeVel(GetSurfaceRef(), velocity);
+    const VECTOR3 up = unit(position);
+    const VECTOR3 aft = -unit(velocity - up * dotp(velocity, up));
+    const VECTOR3 right = unit(crossp(up, aft));
+    const VECTOR3 horizontal = aft * cos(27.0 * RAD) + right * sin(27.0 * RAD);
+    const VECTOR3 z = horizontal * cos(36.5 * RAD) - up * sin(36.5 * RAD);
+    const VECTOR3 x = unit(crossp(up, z));
+    const VECTOR3 y = crossp(z, x);
+    SetRotationMatrix(_M(x.x,y.x,z.x, x.y,y.y,z.y, x.z,y.z,z.z));
+    SetAngularVel(_V(0,0,0));
+}
+
 void ProjectMercury::clbkPreStep(double simt, double simdt, double mjd)
 {
+	if (reconstructCarpenter) ApplyCarpenterRetroAttitude(simt);
 	if (simt - launchTime > 2.0 && simdt > timeStepLimit && !rollProgram && autoPilot && (VesselStatus == LAUNCH || VesselStatus == LAUNCHCORE || VesselStatus == TOWERSEP || VesselStatus == LAUNCHCORETOWERSEP))
 	{
 		AimEulerAngle(eulerPitch, eulerYaw); // SetGlobalOrientation must be in prestep ?
@@ -2435,6 +2458,8 @@ void ProjectMercury::clbkLoadStateEx(FILEHANDLE scn, void* status)
 		{
 			sscanf_s(cbuf + 7, "%i", &orbitCount);
 		}
+		else if (!_stricmp(cbuf, "CARPENTERRETRO 1"))
+			reconstructCarpenter = true;
 		else if (!_strnicmp(cbuf, "INCLINATION", 11))
 		{
 			sscanf_s(cbuf + 11, "%lf", &targetInclination);
@@ -2724,6 +2749,7 @@ void ProjectMercury::clbkSaveState(FILEHANDLE scn)
 	oapiWriteScenario_int(scn, "MISSIONORBITNR", missionOrbitNumber);
 	oapiWriteScenario_float(scn, "MISSIONLANDLAT", missionLandLat);
 	oapiWriteScenario_float(scn, "MISSIONLANDLONG", missionLandLong);
+	if (reconstructCarpenter) oapiWriteScenario_int(scn, "CARPENTERRETRO", 1);
 	if (!launchTargetPosition) oapiWriteScenario_float(scn, "INCLINATION", targetInclination);
 	char computer[64];
 	std::snprintf(computer, sizeof(computer), "%d %d %d %d", int(landingComputing),

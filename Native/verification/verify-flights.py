@@ -89,7 +89,7 @@ def is_ocean(latitude, longitude):
                 previous = x, lat
     return crossings % 2 == 0
 
-def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown, original, hz, max_miss_km=None):
+def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown, original, hz, max_miss_km, carpenter=False):
     sequence_seconds = sequence_met - start_met
     with (case/'evidence/input-events.csv').open() as stream:
         presses = [int(r['tick']) for r in csv.DictReader(stream) if r['key'] == '57' and r['down'] == '1']
@@ -98,8 +98,9 @@ def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, t
         covers = [(r['object'], float(r['seconds'])) for r in csv.DictReader(stream)
                   if r['phase'] == 'module.library.open' and r['object'].startswith(f'{ship} Retrocover ')]
     assert [obj for obj, _ in covers] == [f'{ship} Retrocover {i}' for i in (1, 2, 3)], (case, covers)
-    for index, (_, seconds) in enumerate(covers):
-        assert abs(seconds - (sequence_seconds + 30 + 5 * index)) <= .1875, (case, covers)
+    delays = (33.8, 38.8, 44.0) if carpenter else (30, 35, 40)
+    for (_, seconds), delay in zip(covers, delays):
+        assert abs(seconds - (sequence_seconds + delay)) <= .1875, (case, covers)
     assert first['ground'] == '0' and orbit(first)['perigee_km'] > 140, case
     assert after_burn is not None and touchdown is not None, case
     perigee = orbit(after_burn)['perigee_km']
@@ -114,24 +115,29 @@ def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, t
     scenario = re.search(rf'^{re.escape(ship)}:[^\n]+\n(.*?)^END$', original.read_text(), re.M | re.S)[1]
     target_lat, target_lon = (float(re.search(rf'^  MISSIONLAND{axis} ([\d.-]+)$', scenario, re.M)[1])
                               for axis in ('LAT', 'LONG'))
+    if carpenter:
+        target_lat, target_lon = 19 + 29/60, -(64 + 5/60)  # NASA MA-7 mission record
+    reference = 'historical splashdown' if carpenter else 'scenario target'
     haversine = (math.sin(math.radians(lat - target_lat) / 2) ** 2 +
                  math.cos(math.radians(lat)) * math.cos(math.radians(target_lat)) *
                  math.sin(math.radians(lon - target_lon) / 2) ** 2)
     miss_km = 2 * earth_radius / 1000 * math.asin(math.sqrt(haversine))
     if max_miss_km is not None and not miss_km <= max_miss_km:
         raise ValueError(f'{ship} first ocean contact at ({lat:.4f}, {lon:.4f}) is {miss_km:.1f} km '
-                         f'from the scenario target ({target_lat}, {target_lon}), limit {max_miss_km} km')
+                         f'from the {reference} ({target_lat}, {target_lon}), limit {max_miss_km} km')
+    distance_key = 'distance_to_historical_splashdown_km' if carpenter else 'distance_to_scenario_target_km'
     return dict(retrosequence_command_met_s=sequence_met, retro_motor_met_s=[start_met + s for _, s in covers], post_burn_perigee_km=perigee,
                 splashdown_met_s=start_met + float(touchdown['seconds']), splashdown_lat_deg=lat,
                 splashdown_lon_deg=lon, contact_airspeed_mps=float(touchdown['airspeed']),
-                target_lat_deg=target_lat, target_lon_deg=target_lon, distance_to_scenario_target_km=miss_km,
+                target_lat_deg=target_lat, target_lon_deg=target_lon, **{distance_key: miss_km},
                 max_recovery_distance_km=max_miss_km)
 
 cases=[('freedom7-launch','MR-3','ascent'),('freedom7-reentry','MR-3','recovery'),
        ('libertybell7-flight','MR-4','recovery'),('friendship7-launch','MA-6','insertion'),
        ('friendship7-three-orbits','MA-6','coast'),('friendship7-retro-entry','MA-6','recovery'),
        ('aurora7-launch','MA-7','insertion'),('sigma7-launch','MA-8','insertion'),('faith7-launch','MA-9','insertion')]
-for mission,ship in [('aurora7','MA-7'), ('sigma7','MA-8'), ('faith7','MA-9')]:
+cases.append(('carpenter-launch','MA-7','insertion'))
+for mission,ship in [('carpenter','MA-7'), ('aurora7','MA-7'), ('sigma7','MA-8'), ('faith7','MA-9')]:
     cases.extend([(f'{mission}-coast',ship,'coast'), (f'{mission}-retro-entry',ship,'recovery')])
 build_hashes = runtime_hashes(runtime)
 flight_hashes = {name: verify_record(root/name, build_hashes) for name, _, _ in cases}
@@ -145,6 +151,10 @@ for name,ship,phase in cases:
     assert '5%' in (case/'audio-server.txt').read_text(),name
     assert json.loads((case/'evidence/native-window.json').read_text())['backend']=='x11',name
     mission = name.split('-')[0]
+    if mission in ('carpenter', 'aurora7'):
+        for scenario in ('input.scn', 'saved.scn'):
+            flagged = '  CARPENTERRETRO 1' in (case/scenario).read_text().splitlines()
+            assert flagged == (mission == 'carpenter'), (name, scenario, 'reconstruction mode')
     linked_return = mission in CHECKPOINT_MET and phase in ('coast', 'recovery')
     after_burn = touchdown = None
     if linked_return:
@@ -201,7 +211,8 @@ for name,ship,phase in cases:
             assert console.index('Drogue deployed') < console.index('Main deployed') < console.index('sep main on contact'), name
             result.update(verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown,
                                             root/f'{mission}-launch'/'input.scn', FLIGHT_HZ,
-                                            max_miss_km=RECOVERY_LIMIT_KM))
+                                            max_miss_km=75 if mission == 'aurora7' else RECOVERY_LIMIT_KM,
+                                            carpenter=mission == 'carpenter'))
             result['command_offset_from_historical_s'] = sequence_met - MISSIONS[mission].historical_sequence_met
     else:assert 100000<float(last['altitude_mean'])<220000,name
     results.append(result)
@@ -213,7 +224,7 @@ report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'priva
         'runtime_sha256':build_hashes,
         'flight_replays':results,
         'limitations':['Historical accuracy and Windows numerical parity are not yet qualified.',
-                       'The orbital returns use nominal spacecraft systems. Distances are measured against the original scenario coordinates. Historical equipment failures are unqualified.',
+                       'The Carpenter replay imposes the radar-reconstructed mean attitude during retrofire. Nominal replays use the original scenario coordinates.',
                        'Little Joe and Scout modules build; their flight sequences are not yet qualified.',
                        'Windows and macOS add-on builds are not yet tested.']}
 destination.parent.mkdir(parents=True,exist_ok=True)

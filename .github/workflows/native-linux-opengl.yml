@@ -85,7 +85,7 @@ jobs:
           chown -R mercury-ci "$RUNNER_TEMP/mercury" results
       - name: Reject flight evidence from a different or unknown build
         run: runuser -u mercury-ci -- python3 Native/verification/test-runtime-provenance.py "$RUNNER_TEMP/mercury/runtime"
-      - name: Fly six missions and verify Aurora, Sigma and Faith 7 insertion and recovery passes
+      - name: Fly six missions and check the separate Carpenter reconstruction against the historical splashdown
         run: |
           runtime="$RUNNER_TEMP/mercury/runtime"
           runuser -u mercury-ci -- python3 Native/verification/run-suite.py "$runtime" "$PWD/results/flights"

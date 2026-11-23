@@ -769,6 +769,8 @@ private:
 	enum failure { NONE, LOWGACTIVATE, LOWGDEACTIVE, ATTSTUCKON, ATTSTUCKOFF, ATTMODEOFF, RETROSTUCKOFF, RETROSTUCKON, RETRONOSEP, MAINCHUTETORN, NOLANDBAG, RETROCALCOFF, BOOSTERDEVIATIONSPEED, BOOSTERPROBLEM, ATTITUDEOFFSET, LASTENTRY} FailureMode = NONE; // LASTENTRY is used to dynamically get length of enum. Always have it last in the array
 	bool difficultyHard = false; // Used for most extreme cases. If false and a hard case is chosen, no error occurs.
 	double timeOfError = 1e10; // initialise to "infinity". This says when an error first occurs / breaks out
+	bool reconstructCarpenter = false;
+	void ApplyCarpenterRetroAttitude(double simt);
 	double pitchOffset = 0.0, yawOffset = 0.0, rollOffset = 0.0; // radians
 	double speedError = 0.0; // m/s
 	double chuteDestroyFactor = 0.0; // 1 is completely mess, 0 is no problem

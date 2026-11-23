@@ -48,6 +48,15 @@ for folder in (historical, historical/'Possible failures'):
             raise ValueError(f'{scenario}: expected one original recovery target')
         scenario.write_bytes(data.replace(target, target + b'  INCLINATION 32.55\r\n'))
 
+nominal = (historical/'4. Launch of Aurora 7.scn').read_bytes()
+capsule = b'  CAPSULE 3\r\n'
+if nominal.count(capsule) != 1:
+    raise ValueError('Missing MA-7 capsule selector')
+reconstruction = historical.parent/'Reconstructions'/'Aurora 7 - Carpenter retrofire.scn'
+reconstruction.parent.mkdir(exist_ok=True)
+reconstruction.unlink(missing_ok=True)
+reconstruction.write_bytes(nominal.replace(capsule, b'  CARPENTERRETRO 1\r\n' + capsule))
+
 # The stock default is spherical Earth. The dedicated Mercury profile needs
 # both the latitude-dependent gravity and the nodal drift over a day in orbit.
 config = runtime/'Orbiter.cfg'

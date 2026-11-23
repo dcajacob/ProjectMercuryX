@@ -701,6 +701,15 @@ inline void ProjectMercury::InitiateRetroSequence(void)
 	if (switchRetroDelay == -1) retroStartTime = oapiGetSimTime() + 30.0; // retrosequence starts 30 sec before firing
 	else if (switchRetroDelay == 1) retroStartTime = oapiGetSimTime(); // start retrosequence immediately
 
+#ifdef MERCURY_ATLAS_RECONSTRUCTION
+    if (reconstructCarpenter && CapsuleVersion == AURORA7)
+    {
+        // MA-7 flight events: first motor 33.8 s after sequence initiation.
+        retroStartTime = oapiGetSimTime() + 33.8;
+        switchRetroAttitude = 1; // Carpenter used manual override.
+        oapiWriteLog("MA-7 Carpenter retrofire reconstruction armed");
+    }
+#endif
 	AutopilotStatus = RETROATTITUDE;
 }
 
@@ -833,21 +842,32 @@ void ProjectMercury::CreateRetroRockets(void)
 
 	m_exhaust_pos = _V(-0.196, 0.095, MERCURY_OFS_RETRO.z - 0.2);
 	m_exhaust_ref = _V(0.9, -0.436, 6.7);
-	thruster_retro[0] = CreateThruster(m_exhaust_pos, m_exhaust_ref, RETRO_THRUST, retro_propellant[0], RETRO_ISP);
+	double retroThrust = RETRO_THRUST;
+    double retroIsp = RETRO_ISP;
+#ifdef MERCURY_ATLAS_RECONSTRUCTION
+    if (reconstructCarpenter && CapsuleVersion == AURORA7)
+    {
+        // NASA's radar fit gives 97% of the 38,943 lbf s motor-set impulse.
+        const double impulsePerMotor = 38943.0 * 4.4482216152605 * 0.97 / 3.0;
+        retroThrust = impulsePerMotor / 11.5;
+        retroIsp = impulsePerMotor / RETRO_MASS_FUEL;
+    }
+#endif
+    thruster_retro[0] = CreateThruster(m_exhaust_pos, m_exhaust_ref, retroThrust, retro_propellant[0], retroIsp);
 	AddExhaust(thruster_retro[0], 1.8, 0.05, tex);
 	LightEmitter* retro1_light = AddPointLight(m_exhaust_pos, 20, 0.1, -0.01, 0.2, col_d, col_s, col_a);
 	retro1_light->SetIntensityRef(&RETRO_THRUST_LEVEL[0]);
 
 	m_exhaust_pos = _V(-0.005, -0.19, MERCURY_OFS_RETRO.z - 0.2);
 	m_exhaust_ref = _V(0.026, 1, 7.7);
-	thruster_retro[1] = CreateThruster(m_exhaust_pos, m_exhaust_ref, RETRO_THRUST, retro_propellant[1], RETRO_ISP);
+	thruster_retro[1] = CreateThruster(m_exhaust_pos, m_exhaust_ref, retroThrust, retro_propellant[1], retroIsp);
 	AddExhaust(thruster_retro[1], 1.8, 0.05, tex);
 	LightEmitter* retro2_light = AddPointLight(m_exhaust_pos, 20, 0.1, -0.01, 0.2, col_d, col_s, col_a);
 	retro2_light->SetIntensityRef(&RETRO_THRUST_LEVEL[1]);
 
 	m_exhaust_pos = _V(0.175, 0.107, MERCURY_OFS_RETRO.z - 0.2);
 	m_exhaust_ref = _V(-0.853, -0.522, 7.1);
-	thruster_retro[2] = CreateThruster(m_exhaust_pos, m_exhaust_ref, RETRO_THRUST, retro_propellant[2], RETRO_ISP);
+	thruster_retro[2] = CreateThruster(m_exhaust_pos, m_exhaust_ref, retroThrust, retro_propellant[2], retroIsp);
 	AddExhaust(thruster_retro[2], 1.8, 0.05, tex);
 	LightEmitter* retro3_light = AddPointLight(m_exhaust_pos, 20, 0.1, -0.01, 0.2, col_d, col_s, col_a);
 	retro3_light->SetIntensityRef(&RETRO_THRUST_LEVEL[2]);
@@ -2521,7 +2541,11 @@ inline void ProjectMercury::MercuryCapsuleGenericTimestep(double simt, double si
 		{
 			FireRetroRocket(1);
 
-			if (simt > (retroStartTime + 10.0))
+			double thirdMotorDelay = 10.0;
+#ifdef MERCURY_ATLAS_RECONSTRUCTION
+            if (reconstructCarpenter && CapsuleVersion == AURORA7) thirdMotorDelay = 10.2;
+#endif
+            if (simt > (retroStartTime + thirdMotorDelay))
 			{
 				FireRetroRocket(2);
 			}

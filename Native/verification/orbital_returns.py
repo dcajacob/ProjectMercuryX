@@ -19,6 +19,7 @@ MISSIONS = {
     'sigma7': Mission('MA-8', 8*3600 + 51*60 + 30, 161.0, 283.04, 5335),
     'faith7': Mission('MA-9', 33*3600 + 58*60 + 59, 161.42, 266.99, 5325),
 }
+MISSIONS['carpenter'] = MISSIONS['aurora7']  # Same ascent and coast, reconstructed burn.
 CHECKPOINT_MET = {name: int(m.historical_sequence_met) - 30 for name, m in MISSIONS.items()}
 FLIGHT_HZ = 60
 RECOVERY_LIMIT_KM = 50
@@ -26,6 +27,8 @@ RECOVERY_LIMIT_KM = 50
 
 def sequence_met(mission, coast):
     reference = MISSIONS[mission]
+    if mission == 'carpenter':
+        return reference.historical_sequence_met
     met = CHECKPOINT_MET[mission]
     log = (coast/'console.log').read_text(errors='replace')
     clocks = re.findall(rf'^Mercury recovery clock {reference.ship} MET {met} sequence (\d+):(\d+):(\d+)$', log, re.M)
