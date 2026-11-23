@@ -1072,6 +1072,18 @@ void ProjectMercury::clbkPreStep(double simt, double simdt, double mjd)
 	//}
 }
 
+// TN D-3814, launch chronology: NASA's range clock starts 0.57 s
+// before liftoff. The vessel clock starts at simulated liftoff.
+static constexpr double ma7LiftoffRangeTime = 0.57;
+
+double ProjectMercury::CapsuleSeparationTime() const
+{
+	const double earliest = boosterShutdownTime + 1.0;
+	if (reconstructCarpenter && CapsuleVersion == AURORA7)
+		return (std::max)(earliest, launchTime + (312.2 - ma7LiftoffRangeTime));
+	return earliest;
+}
+
 void ProjectMercury::clbkPostStep(double simt, double simdt, double mjd)
 {
 	if (VesselStatus == LAUNCH || VesselStatus == LAUNCHCORE || VesselStatus == LAUNCHCORETOWERSEP || VesselStatus == TOWERSEP)
@@ -1214,9 +1226,11 @@ void ProjectMercury::clbkPostStep(double simt, double simdt, double mjd)
 		}
 		else if (VesselStatus == TOWERSEP || VesselStatus == LAUNCHCORETOWERSEP)
 		{
-			if (boosterShutdownTime != 0.0 && simt > boosterShutdownTime + 1.0 && vesselAcceleration < 0.25 * G) // capsule sep at 1 sec after cutoff (19620004691 page 34)
+			if (boosterShutdownTime != 0.0 && simt > CapsuleSeparationTime() && vesselAcceleration < 0.25 * G) // capsule sep at 1 sec after cutoff (19620004691 page 34)
 			{
-				oapiWriteLog("Automatic capsule separate +1 second after shutdown");
+				oapiWriteLogV("%s", reconstructCarpenter && CapsuleVersion == AURORA7
+					? "MA-7 reconstructed spacecraft separation after shutdown"
+					: "Automatic capsule separate +1 second after shutdown");
 				separateCapsuleAction = true;
 			}
 		}
@@ -2226,7 +2240,7 @@ bool ProjectMercury::clbkDrawHUD(int mode, const HUDPAINTSPEC* hps, oapi::Sketch
 		}
 		else if (autoPilot && VesselStatus == LAUNCHCORETOWERSEP)
 		{
-			sprintf(cbuf, "Separate capsule in %.2f s", 1.0 + boosterShutdownTime - simt);
+			sprintf(cbuf, "Separate capsule in %.2f s", CapsuleSeparationTime() - simt);
 			skp->Text(secondColumnHUDx * TextX0, yIndex * LineSpacing + TextY0, cbuf, strlen(cbuf));
 			yIndex += 1;
 		}
@@ -2967,7 +2981,9 @@ void ProjectMercury::AtlasAutopilot(double simt, double simdt)
 		separateBoosterAction = true;
 	}
 
-	if (met > BECO + 20.0 && VesselStatus == LAUNCHCORE && !GroundContact()) // time from 19930074071 page 25
+	const double towerReleaseMet = reconstructCarpenter && CapsuleVersion == AURORA7
+		? 152.2 - ma7LiftoffRangeTime : BECO + 20.0;
+	if (met > towerReleaseMet && VesselStatus == LAUNCHCORE && !GroundContact())
 	{
 		separateTowerAction = true;
 	}

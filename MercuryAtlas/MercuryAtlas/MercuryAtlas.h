@@ -770,6 +770,7 @@ private:
 	bool difficultyHard = false; // Used for most extreme cases. If false and a hard case is chosen, no error occurs.
 	double timeOfError = 1e10; // initialise to "infinity". This says when an error first occurs / breaks out
 	bool reconstructCarpenter = false;
+	double CapsuleSeparationTime() const;
 	void ApplyCarpenterRetroAttitude(double simt);
 	double pitchOffset = 0.0, yawOffset = 0.0, rollOffset = 0.0; // radians
 	double speedError = 0.0; // m/s

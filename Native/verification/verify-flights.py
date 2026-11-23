@@ -245,7 +245,9 @@ for name,ship,phase in cases:
         assert liftoff is not None, (name, 'missing pad release')
         chronology['liftoff'] = dict(range_time_s=liftoff, nasa_s=CARPENTER_LIFTOFF_RANGE_S,
                                      difference_s=liftoff-CARPENTER_LIFTOFF_RANGE_S)
-        if abs(liftoff - CARPENTER_LIFTOFF_RANGE_S) > 2.5 / FLIGHT_HZ:
+        for event, times in chronology.items():
+            print(f"Carpenter {event}: {times['range_time_s']:.3f} s; NASA {times['nasa_s']:.2f} s")
+        if any(abs(times['difference_s']) > 2.5 / FLIGHT_HZ for times in chronology.values()):
             result['result'] = 'failed'
         result['ascent_chronology'] = chronology
     if mission == 'carpenter' and phase == 'recovery':
