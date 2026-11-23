@@ -65,11 +65,13 @@ def first_orbit(case, reference):
                 perigee = min(perigee, altitude)
     apogee = peaks[0][0]
     measured_period = peaks[1][1] - peaks[0][1]
-    if not (abs(perigee - reference.perigee_km) <= 3 and abs(apogee - reference.apogee_km) <= 5 and abs(measured_period - period) <= 10):
+    within_limits = (abs(perigee - reference.perigee_km) <= 3 and abs(apogee - reference.apogee_km) <= 5
+                     and abs(measured_period - period) <= 10)
+    if not within_limits and not args.carpenter_only:
         raise ValueError(f'{case.name} observed orbit {perigee:.2f} x {apogee:.2f} km, '
                          f'apogee-to-apogee period {measured_period:.2f} s')
     return dict(first_orbit_perigee_km=perigee, first_orbit_apogee_km=apogee,
-                apogee_to_apogee_period_s=measured_period)
+                apogee_to_apogee_period_s=measured_period, first_orbit_within_limits=within_limits)
 
 
 def saved_met(path):
@@ -204,6 +206,9 @@ for name,ship,phase in cases:
             result['insertion_inclination_deg'] = insertion_inclination(case, last)
         elif mission in MISSIONS and phase == 'coast':
             result.update(first_orbit(case, MISSIONS[mission]))
+            if not result['first_orbit_within_limits']:
+                result['result'] = 'failed'
+                print(f"{name}: measured period {result['apogee_to_apogee_period_s']:.3f} s, reference {MISSIONS[mission].period_s} s")
         if linked_return:
             assert result['simulated_seconds'] == checkpoint_met - start_met, name
             assert saved_met(case/'saved.scn') == checkpoint_met, name
@@ -244,5 +249,5 @@ report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'priva
 destination.parent.mkdir(parents=True,exist_ok=True)
 destination.write_text(json.dumps(report,indent=2)+'\n')
 if any(row['result'] != 'passed' for row in results):
-    sys.exit('Historical splashdown exceeds 50 km')
+    sys.exit('Qualification failed: ' + ', '.join(row['case'] for row in results if row['result'] != 'passed'))
 print(f'PASS {len(results)} flight replays')
