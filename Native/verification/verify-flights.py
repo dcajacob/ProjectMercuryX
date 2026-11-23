@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check measured trajectories and recovery, rather than only process survival."""
 from pathlib import Path
+import argparse
 import csv
 import hashlib
 import json
@@ -9,7 +10,13 @@ import re
 import sys
 from orbital_returns import CHECKPOINT_MET, FLIGHT_HZ, MISSIONS, RECOVERY_LIMIT_KM, sequence_met as planned_sequence_met
 from runtime_provenance import runtime_hashes, verify_record
-runtime, root, destination = map(Path,sys.argv[1:])
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('runtime', type=Path)
+parser.add_argument('root', type=Path)
+parser.add_argument('destination', type=Path)
+parser.add_argument('--carpenter-only', action='store_true')
+args = parser.parse_args()
+runtime, root, destination = args.runtime, args.root, args.destination
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 mu=3.986004418e14
 earth_radius=6371010.0
@@ -122,7 +129,7 @@ def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, t
                  math.cos(math.radians(lat)) * math.cos(math.radians(target_lat)) *
                  math.sin(math.radians(lon - target_lon) / 2) ** 2)
     miss_km = 2 * earth_radius / 1000 * math.asin(math.sqrt(haversine))
-    if max_miss_km is not None and not miss_km <= max_miss_km:
+    if not carpenter and not miss_km <= max_miss_km:
         raise ValueError(f'{ship} first ocean contact at ({lat:.4f}, {lon:.4f}) is {miss_km:.1f} km '
                          f'from the {reference} ({target_lat}, {target_lon}), limit {max_miss_km} km')
     distance_key = 'distance_to_historical_splashdown_km' if carpenter else 'distance_to_scenario_target_km'
@@ -139,6 +146,7 @@ cases=[('freedom7-launch','MR-3','ascent'),('freedom7-reentry','MR-3','recovery'
 cases.append(('carpenter-launch','MA-7','insertion'))
 for mission,ship in [('carpenter','MA-7'), ('aurora7','MA-7'), ('sigma7','MA-8'), ('faith7','MA-9')]:
     cases.extend([(f'{mission}-coast',ship,'coast'), (f'{mission}-retro-entry',ship,'recovery')])
+cases = [case for case in cases if case[0].startswith('carpenter-') == args.carpenter_only]
 build_hashes = runtime_hashes(runtime)
 flight_hashes = {name: verify_record(root/name, build_hashes) for name, _, _ in cases}
 results=[]
@@ -215,6 +223,12 @@ for name,ship,phase in cases:
                                             carpenter=mission == 'carpenter'))
             result['command_offset_from_historical_s'] = sequence_met - MISSIONS[mission].historical_sequence_met
     else:assert 100000<float(last['altitude_mean'])<220000,name
+    if mission == 'carpenter' and phase == 'recovery':
+        distance = result['distance_to_historical_splashdown_km']
+        if distance > RECOVERY_LIMIT_KM:
+            result['result'] = 'failed'
+        print(f"Carpenter first ocean contact: {result['splashdown_lat_deg']:.5f}, "
+              f"{result['splashdown_lon_deg']:.5f}; historical miss {distance:.2f} km (limit {RECOVERY_LIMIT_KM} km)")
     results.append(result)
 report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'private PulseAudio null sink at 5%',
         'engine_sha256':build_hashes['engine/orbiter-production'],
@@ -229,4 +243,6 @@ report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'priva
                        'Windows and macOS add-on builds are not yet tested.']}
 destination.parent.mkdir(parents=True,exist_ok=True)
 destination.write_text(json.dumps(report,indent=2)+'\n')
+if any(row['result'] != 'passed' for row in results):
+    sys.exit('Historical splashdown exceeds 50 km')
 print(f'PASS {len(results)} flight replays')

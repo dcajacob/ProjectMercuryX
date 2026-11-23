@@ -3776,6 +3776,19 @@ double ProjectMercury::EmptyMass(void)
 		// LAUNCH
 		mass = MERCURY_MASS + CORE_DRY_MASS + BOOSTER_DRY_MASS + ABORT_MASS;
 
+    if (reconstructCarpenter && CapsuleVersion == AURORA7)
+    {
+        // TN D-3814, spacecraft 18 weight and balance (p. 7) and Table VIII.
+        // Orbiter adds the live propellants to this empty mass.
+        constexpr double kgPerLb = 0.45359237;
+        if (VesselStatus == FLIGHT)
+            mass = (2974.56 - 35.0 - 24.9) * kgPerLb - 3 * RETRO_MASS_FUEL;
+        else if (VesselStatus == REENTRY)
+            mass = (2663.36 - 6.4 - 1.0) * kgPerLb;
+        else if (VesselStatus == REENTRYNODROGUE)
+            mass = 2557.70 * kgPerLb;
+    }
+
 	if (conceptManouverUnit && conceptManouverUnitAttached)
 		mass += CONCEPT_POSIGRADE_EMPTY_MASS;
 

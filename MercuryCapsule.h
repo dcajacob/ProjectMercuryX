@@ -706,6 +706,9 @@ inline void ProjectMercury::InitiateRetroSequence(void)
     {
         // MA-7 flight events: first motor 33.8 s after sequence initiation.
         retroStartTime = oapiGetSimTime() + 33.8;
+        // Table VIII inventory at retrofire after Carpenter's orbital maneuvers.
+        SetPropellantMass(fuel_auto, 6.4 * 0.45359237);
+        SetPropellantMass(fuel_manual, 1.0 * 0.45359237);
         switchRetroAttitude = 1; // Carpenter used manual override.
         oapiWriteLog("MA-7 Carpenter retrofire reconstruction armed");
     }

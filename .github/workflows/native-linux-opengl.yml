@@ -104,6 +104,10 @@ jobs:
         run: |
           package="$RUNNER_TEMP/mercury/package"
           runuser -u mercury-ci -- bash Native/verification/run-session.sh "$package" "$PWD/results/launcher" launcher
+      - name: Check Carpenter's first ocean contact against NASA's landing position (50 km)
+        run: |
+          runuser -u mercury-ci -- python3 Native/verification/verify-flights.py "$RUNNER_TEMP/mercury/runtime" \
+            "$PWD/results/flights" "$PWD/results/carpenter-results.json" --carpenter-only
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -112,6 +116,7 @@ jobs:
           if-no-files-found: warn
           path: |
             results/flight-results.json
+            results/carpenter-results.json
             results/reload-state/results.json
             results/**/runtime-provenance.json
             results/retro-panel.log
