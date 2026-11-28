@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """Check measured trajectories and recovery, rather than only process survival."""
 from pathlib import Path
+import argparse
 import csv
 import hashlib
 import json
 import math
 import re
 import sys
-from orbital_returns import CHECKPOINT_MET, FLIGHT_HZ, MISSIONS, sequence_met as planned_sequence_met
+from orbital_returns import CARPENTER_LIFTOFF_RANGE_S, CHECKPOINT_MET, FLIGHT_HZ, MISSIONS, RECOVERY_LIMIT_KM, carpenter_range_time, replay_time, sequence_met as planned_sequence_met
 from runtime_provenance import runtime_hashes, verify_record
-runtime, root, destination = map(Path,sys.argv[1:])
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('runtime', type=Path)
+parser.add_argument('root', type=Path)
+parser.add_argument('destination', type=Path)
+parser.add_argument('--carpenter-only', action='store_true')
+args = parser.parse_args()
+runtime, root, destination = args.runtime, args.root, args.destination
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 mu=3.986004418e14
 earth_radius=6371010.0
@@ -38,6 +45,54 @@ def insertion_inclination(case, state):
     return inclination
 
 
+def carpenter_states(case, ship, events):
+    """Last accepted sample at each UTC range time (before thrust at retrofire)."""
+    samples = {}
+    with (case/'evidence/flight-state.csv').open() as stream:
+        rows = (r for r in csv.DictReader(stream) if r['object'] == ship)
+        row = next(rows)
+        for event, time in events:
+            while carpenter_range_time(row['mjd']) <= time + 1e-6:
+                samples[event] = row
+                row = next(rows)
+            if event not in samples or time - carpenter_range_time(samples[event]['mjd']) > 1.01 / FLIGHT_HZ:
+                raise ValueError(f'{case}: missing {event} state at range {time}')
+    by_tick = {r['tick']: name for name, r in samples.items()}
+    states = {}
+    with (case/'evidence/ground-math.csv').open() as stream:
+        for ground in csv.DictReader(stream):
+            event = by_tick.get(ground['tick'])
+            if event is None:
+                continue
+            row = samples[event]
+            pos = [float(row['r' + axis]) for axis in 'xyz']
+            vel = [float(row['v' + axis]) for axis in 'xyz']
+            radius, speed = math.hypot(*pos), math.hypot(*vel)
+            radial = sum(x*y for x, y in zip(pos, vel)) / radius
+            # NASA table XVII uses geodetic latitude. Orbiter reports a
+            # geocentric angle. Use WGS84 for the comparison only.
+            latitude = float(ground['latitude'])
+            pxy, z = radius * math.cos(latitude), radius * math.sin(latitude)
+            eccentricity2 = 6.6943799901413165e-3
+            phi = latitude
+            for _ in range(4):
+                n = 6378137.0 / math.sqrt(1 - eccentricity2 * math.sin(phi)**2)
+                phi = math.atan2(z + n * eccentricity2 * math.sin(phi), pxy)
+            states[event] = dict(range_time_s=carpenter_range_time(row['mjd']),
+                                 geocentric_lat_deg=math.degrees(latitude),
+                                 wgs84_lat_deg=math.degrees(phi),
+                                 longitude_deg=math.degrees(float(ground['longitude'])),
+                                 altitude_mean_km=float(row['altitude_mean']) / 1000,
+                                 wgs84_height_km=(pxy / math.cos(phi) - n) / 1000,
+                                 inertial_speed_mps=speed,
+                                 radial_flight_path_deg=math.degrees(math.asin(radial / speed)))
+            if len(states) == len(events):
+                break
+    if len(states) != len(events):
+        raise ValueError(f'{case}: missing ground telemetry at historical events')
+    return states
+
+
 def first_orbit(case, reference):
     # With harmonics on, two-body osculating apsides at insertion are not
     # the altitudes the capsule reaches. Measure both from the linked coast.
@@ -58,15 +113,14 @@ def first_orbit(case, reference):
                 perigee = min(perigee, altitude)
     apogee = peaks[0][0]
     measured_period = peaks[1][1] - peaks[0][1]
-    if not (abs(perigee - reference.perigee_km) <= 3 and abs(apogee - reference.apogee_km) <= 5 and abs(measured_period - period) <= 10):
+    within_limits = (abs(perigee - reference.perigee_km) <= 3 and abs(apogee - reference.apogee_km) <= 5
+                     and abs(measured_period - period) <= 10)
+    if not within_limits and not args.carpenter_only:
         raise ValueError(f'{case.name} observed orbit {perigee:.2f} x {apogee:.2f} km, '
                          f'apogee-to-apogee period {measured_period:.2f} s')
     return dict(first_orbit_perigee_km=perigee, first_orbit_apogee_km=apogee,
-                apogee_to_apogee_period_s=measured_period)
+                apogee_to_apogee_period_s=measured_period, first_orbit_within_limits=within_limits)
 
-
-def saved_met(path):
-    return int(re.search(r'^  MET (\d+)$', path.read_text(), re.M)[1])
 
 def is_ocean(latitude, longitude):
     # Count coastline crossings along a meridian to the North Pole (ocean).
@@ -89,7 +143,7 @@ def is_ocean(latitude, longitude):
                 previous = x, lat
     return crossings % 2 == 0
 
-def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown, original, hz, max_miss_km=None):
+def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown, original, hz, max_miss_km, carpenter=False):
     sequence_seconds = sequence_met - start_met
     with (case/'evidence/input-events.csv').open() as stream:
         presses = [int(r['tick']) for r in csv.DictReader(stream) if r['key'] == '57' and r['down'] == '1']
@@ -98,8 +152,9 @@ def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, t
         covers = [(r['object'], float(r['seconds'])) for r in csv.DictReader(stream)
                   if r['phase'] == 'module.library.open' and r['object'].startswith(f'{ship} Retrocover ')]
     assert [obj for obj, _ in covers] == [f'{ship} Retrocover {i}' for i in (1, 2, 3)], (case, covers)
-    for index, (_, seconds) in enumerate(covers):
-        assert abs(seconds - (sequence_seconds + 30 + 5 * index)) <= .1875, (case, covers)
+    delays = (33.8, 38.8, 44.0) if carpenter else (30, 35, 40)
+    for (_, seconds), delay in zip(covers, delays):
+        assert abs(seconds - (sequence_seconds + delay)) <= .1875, (case, covers)
     assert first['ground'] == '0' and orbit(first)['perigee_km'] > 140, case
     assert after_burn is not None and touchdown is not None, case
     perigee = orbit(after_burn)['perigee_km']
@@ -114,25 +169,31 @@ def verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, t
     scenario = re.search(rf'^{re.escape(ship)}:[^\n]+\n(.*?)^END$', original.read_text(), re.M | re.S)[1]
     target_lat, target_lon = (float(re.search(rf'^  MISSIONLAND{axis} ([\d.-]+)$', scenario, re.M)[1])
                               for axis in ('LAT', 'LONG'))
+    if carpenter:
+        target_lat, target_lon = 19 + 29/60, -(64 + 5/60)  # NASA MA-7 mission record
+    reference = 'historical splashdown' if carpenter else 'scenario target'
     haversine = (math.sin(math.radians(lat - target_lat) / 2) ** 2 +
                  math.cos(math.radians(lat)) * math.cos(math.radians(target_lat)) *
                  math.sin(math.radians(lon - target_lon) / 2) ** 2)
     miss_km = 2 * earth_radius / 1000 * math.asin(math.sqrt(haversine))
-    if max_miss_km is not None and not miss_km <= max_miss_km:
+    if not carpenter and not miss_km <= max_miss_km:
         raise ValueError(f'{ship} first ocean contact at ({lat:.4f}, {lon:.4f}) is {miss_km:.1f} km '
-                         f'from the scenario target ({target_lat}, {target_lon}), limit {max_miss_km} km')
+                         f'from the {reference} ({target_lat}, {target_lon}), limit {max_miss_km} km')
+    distance_key = 'distance_to_historical_splashdown_km' if carpenter else 'distance_to_scenario_target_km'
     return dict(retrosequence_command_met_s=sequence_met, retro_motor_met_s=[start_met + s for _, s in covers], post_burn_perigee_km=perigee,
                 splashdown_met_s=start_met + float(touchdown['seconds']), splashdown_lat_deg=lat,
                 splashdown_lon_deg=lon, contact_airspeed_mps=float(touchdown['airspeed']),
-                target_lat_deg=target_lat, target_lon_deg=target_lon, distance_to_scenario_target_km=miss_km,
+                target_lat_deg=target_lat, target_lon_deg=target_lon, **{distance_key: miss_km},
                 max_recovery_distance_km=max_miss_km)
 
 cases=[('freedom7-launch','MR-3','ascent'),('freedom7-reentry','MR-3','recovery'),
        ('libertybell7-flight','MR-4','recovery'),('friendship7-launch','MA-6','insertion'),
        ('friendship7-three-orbits','MA-6','coast'),('friendship7-retro-entry','MA-6','recovery'),
        ('aurora7-launch','MA-7','insertion'),('sigma7-launch','MA-8','insertion'),('faith7-launch','MA-9','insertion')]
-for mission,ship in [('aurora7','MA-7'), ('sigma7','MA-8'), ('faith7','MA-9')]:
+cases.append(('carpenter-launch','MA-7','insertion'))
+for mission,ship in [('carpenter','MA-7'), ('aurora7','MA-7'), ('sigma7','MA-8'), ('faith7','MA-9')]:
     cases.extend([(f'{mission}-coast',ship,'coast'), (f'{mission}-retro-entry',ship,'recovery')])
+cases = [case for case in cases if case[0].startswith('carpenter-') == args.carpenter_only]
 build_hashes = runtime_hashes(runtime)
 flight_hashes = {name: verify_record(root/name, build_hashes) for name, _, _ in cases}
 results=[]
@@ -145,12 +206,17 @@ for name,ship,phase in cases:
     assert '5%' in (case/'audio-server.txt').read_text(),name
     assert json.loads((case/'evidence/native-window.json').read_text())['backend']=='x11',name
     mission = name.split('-')[0]
+    if mission in ('carpenter', 'aurora7'):
+        for scenario in ('input.scn', 'saved.scn'):
+            flagged = '  CARPENTERRETRO 1' in (case/scenario).read_text().splitlines()
+            assert flagged == (mission == 'carpenter'), (name, scenario, 'reconstruction mode')
     linked_return = mission in CHECKPOINT_MET and phase in ('coast', 'recovery')
     after_burn = touchdown = None
+    liftoff = None
     if linked_return:
         parent = f'{mission}-' + ('launch' if phase == 'coast' else 'coast')
         assert sha(case/'input.scn') == sha(root/parent/'saved.scn'), (name, parent)
-        start_met = saved_met(case/'input.scn')
+        start_met = replay_time(mission, (case/'input.scn').read_text())
         checkpoint_met = CHECKPOINT_MET[mission]
         if phase == 'recovery':
             sequence_met = planned_sequence_met(mission, root/parent)
@@ -158,6 +224,9 @@ for name,ship,phase in cases:
     with (case/'evidence/flight-state.csv').open() as stream:
         for row in csv.DictReader(stream):
             if row['object']!=ship:continue
+            if mission == 'carpenter' and phase == 'insertion' and liftoff is None and last:
+                if 'LC-14;' in last['attached'] and not row['attached'] and row['ground'] == '0':
+                    liftoff = carpenter_range_time(row['mjd'])
             for key in ['rx','ry','rz','vx','vy','vz','wx','wy','wz','mass','fuel','altitude_mean','airspeed']:
                 assert math.isfinite(float(row[key])),(name,key,row)
             assert float(row['mass'])>0 and float(row['fuel'])>=0,name
@@ -186,9 +255,12 @@ for name,ship,phase in cases:
             result['insertion_inclination_deg'] = insertion_inclination(case, last)
         elif mission in MISSIONS and phase == 'coast':
             result.update(first_orbit(case, MISSIONS[mission]))
+            if not result['first_orbit_within_limits']:
+                result['result'] = 'failed'
+                print(f"{name}: measured period {result['apogee_to_apogee_period_s']:.3f} s, reference {MISSIONS[mission].period_s} s")
         if linked_return:
-            assert result['simulated_seconds'] == checkpoint_met - start_met, name
-            assert saved_met(case/'saved.scn') == checkpoint_met, name
+            assert abs(result['simulated_seconds'] - (checkpoint_met - start_met)) < 0.001, name
+            assert abs(replay_time(mission, (case/'saved.scn').read_text()) - checkpoint_met) < 0.001, name
     elif phase=='recovery':
         assert 'Drogue deployed' in console and 'Main deployed' in console and 'sep main on contact' in console,name
         assert last['ground']=='1' and abs(float(last['altitude_mean']))<3 and float(last['airspeed'])<8,name
@@ -197,13 +269,60 @@ for name,ship,phase in cases:
         assert match and 3<float(match[1])<15,name
         result['maximum_reentry_g']=float(match[1])
         if linked_return:
-            assert start_met == checkpoint_met, name
+            assert abs(start_met - checkpoint_met) < 0.001, name
             assert console.index('Drogue deployed') < console.index('Main deployed') < console.index('sep main on contact'), name
             result.update(verify_retro_entry(case, ship, start_met, sequence_met, first, after_burn, touchdown,
                                             root/f'{mission}-launch'/'input.scn', FLIGHT_HZ,
-                                            max_miss_km=MISSIONS[mission].recovery_limit_km))
+                                            max_miss_km=75 if mission == 'aurora7' else RECOVERY_LIMIT_KM,
+                                            carpenter=mission == 'carpenter'))
             result['command_offset_from_historical_s'] = sequence_met - MISSIONS[mission].historical_sequence_met
     else:assert 100000<float(last['altitude_mean'])<220000,name
+    if mission == 'carpenter' and phase == 'insertion':
+        # Table XVII lists an instantaneous pre/post-posigrade pair. Compare
+        # terminal speeds on either side of the simulated one-second firing.
+        states = carpenter_states(case, ship, [('tail_off', 310.2), ('separation', 312.2),
+                                               ('after_posigrades', 313.25)])
+        result['trajectory_states'] = states
+        for event, reference_fps in [('tail_off', 25717), ('after_posigrades', 25738)]:
+            error = states[event]['inertial_speed_mps'] - reference_fps * 0.3048
+            states[event]['difference_from_table_xvii_mps'] = error
+            if abs(error) > 1.5:
+                result['result'] = 'failed'
+        # Use the simulator date of each detached vessel's appearance. The
+        # Mercury console's T+ labels use the spacecraft's own clock.
+        events = {f'{ship} abort tower': ('tower_release', 152.2),
+                  f'{ship} Atlas core': ('spacecraft_separation', 312.2)}
+        chronology = {}
+        with (case/'evidence/lifetime-events.csv').open() as stream:
+            for row in csv.DictReader(stream):
+                if row['phase'] == 'module.library.open' and row['object'] in events:
+                    event, reference = events[row['object']]
+                    elapsed = carpenter_range_time(row['mjd'])
+                    chronology[event] = dict(range_time_s=elapsed, nasa_s=reference, difference_s=elapsed-reference)
+        assert len(chronology) == len(events), (case, chronology)
+        assert liftoff is not None, (name, 'missing pad release')
+        chronology['liftoff'] = dict(range_time_s=liftoff, nasa_s=CARPENTER_LIFTOFF_RANGE_S,
+                                     difference_s=liftoff-CARPENTER_LIFTOFF_RANGE_S)
+        for event, times in chronology.items():
+            print(f"Carpenter {event}: {times['range_time_s']:.3f} s; NASA {times['nasa_s']:.2f} s")
+        if any(abs(times['difference_s']) > 2.5 / FLIGHT_HZ for times in chronology.values()):
+            result['result'] = 'failed'
+        result['ascent_chronology'] = chronology
+    if mission == 'carpenter' and phase == 'recovery':
+        result['trajectory_states'] = carpenter_states(case, ship, [('before_first_retro', 16390.3),
+                                                                   ('nasa_entry_relay_epoch', 17084.0)])
+        with (case/'evidence/lifetime-events.csv').open() as stream:
+            ignition_times = [carpenter_range_time(row['mjd']) for row in csv.DictReader(stream)
+                              if row['phase'] == 'module.library.open' and row['object'].startswith(f'{ship} Retrocover ')]
+        assert len(ignition_times) == 3, ignition_times
+        assert all(abs(a-b) <= .05 for a,b in zip(ignition_times, (16390.3, 16395.3, 16400.5))), ignition_times
+        result['retro_motor_range_time_s'] = ignition_times
+        result['first_contact_range_time_s'] = carpenter_range_time(touchdown['mjd'])
+        distance = result['distance_to_historical_splashdown_km']
+        if distance > RECOVERY_LIMIT_KM:
+            result['result'] = 'failed'
+        print(f"Carpenter first ocean contact: {result['splashdown_lat_deg']:.5f}, "
+              f"{result['splashdown_lon_deg']:.5f}; historical miss {distance:.2f} km (limit {RECOVERY_LIMIT_KM} km)")
     results.append(result)
 report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'private PulseAudio null sink at 5%',
         'engine_sha256':build_hashes['engine/orbiter-production'],
@@ -213,9 +332,11 @@ report={'platform':'native Linux x86-64 OpenGL','wine':False,'test_audio':'priva
         'runtime_sha256':build_hashes,
         'flight_replays':results,
         'limitations':['Historical accuracy and Windows numerical parity are not yet qualified.',
-                       'The orbital returns use nominal spacecraft systems. Distances are measured against the original scenario coordinates. Historical equipment failures are unqualified.',
+                       'The Carpenter replay imposes the radar-reconstructed mean attitude during retrofire. Nominal replays use the original scenario coordinates.',
                        'Little Joe and Scout modules build; their flight sequences are not yet qualified.',
                        'Windows and macOS add-on builds are not yet tested.']}
 destination.parent.mkdir(parents=True,exist_ok=True)
 destination.write_text(json.dumps(report,indent=2)+'\n')
+if any(row['result'] != 'passed' for row in results):
+    sys.exit('Qualification failed: ' + ', '.join(row['case'] for row in results if row['result'] != 'passed'))
 print(f'PASS {len(results)} flight replays')

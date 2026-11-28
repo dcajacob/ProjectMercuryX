@@ -37,10 +37,25 @@ for folder in (historical, historical/'Possible failures'):
                              ('6. Launch of Faith 7', '-176.588')]:
         scenario = folder/(title + '.scn')
         data = scenario.read_bytes()
+        if title == '4. Launch of Aurora 7':
+            # The original file starts at liftoff UTC, with its clock at T-60.
+            epoch = b'  Date MJD 37808.531435\r\n'
+            if data.count(epoch) != 1:
+                raise ValueError(f'{scenario}: unexpected MA-7 countdown epoch')
+            data = data.replace(epoch, b'  Date MJD 37808.5307407407\r\n')
         target = f'  MISSIONLANDLONG {longitude}\r\n'.encode()
         if data.count(target) != 1:
             raise ValueError(f'{scenario}: expected one original recovery target')
         scenario.write_bytes(data.replace(target, target + b'  INCLINATION 32.55\r\n'))
+
+nominal = (historical/'4. Launch of Aurora 7.scn').read_bytes()
+capsule = b'  CAPSULE 3\r\n'
+if nominal.count(capsule) != 1:
+    raise ValueError('Missing MA-7 capsule selector')
+reconstruction = historical.parent/'Reconstructions'/'Aurora 7 - Carpenter retrofire.scn'
+reconstruction.parent.mkdir(exist_ok=True)
+reconstruction.unlink(missing_ok=True)
+reconstruction.write_bytes(nominal.replace(capsule, b'  CARPENTERRETRO 1\r\n' + capsule))
 
 # The stock default is spherical Earth. The dedicated Mercury profile needs
 # both the latitude-dependent gravity and the nodal drift over a day in orbit.

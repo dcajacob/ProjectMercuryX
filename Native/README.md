@@ -68,8 +68,8 @@ by this work.
 Run `launch-orbiter`, select **Project Mercury → Historical launch scenarios**,
 choose a mission and click Launch. Resize, pause/resume and Ctrl-S quicksave use
 the normal launcher and native engine. Press **P** to start the launch autopilot.
-For the original countdown scenarios, wait 60 simulated seconds before pressing
-P. Atlas includes the pad hold-down interval.
+For Aurora 7, press **P** 57 seconds into the countdown (T−3). The verified
+replays for the other missions press **P** after 60 seconds.
 
 **Space** commands the Mercury retrosequence in free flight, with the normal
 30-second delay before retrofire. **Ctrl-P** pauses. The original panel switches,
@@ -84,7 +84,7 @@ The build uses NASSP’s pinned shared Orbiter source, applies the merged Orbite
 the matching SDK, OpenGL client, launcher, XRSound bridge and all 15 vessel modules.
 
 The flight job downloads the original Mercury distribution from the publisher,
-checks its SHA-256, and flies the 15 replays listed below. The cockpit checks
+checks its SHA-256, and flies the 18 flight segments described below. The cockpit checks
 use the Friendship 7 pre-retro save produced by that run. The launcher opens the
 six original missions and all 15 generated saves. Every session runs under Xvfb
 and Mesa software OpenGL with its own PulseAudio null sink verified at 5%.
@@ -131,7 +131,7 @@ python3 Native/verification/retro-panel.py "$PACKAGE" \
 ```
 
 
-The suite covers **15 flight replays and 21 launcher checks**.
+The suite covers **18 flight segments and 21 launcher checks**.
 
 | Mission | Flight coverage |
 | --- | --- |
@@ -170,7 +170,7 @@ The perigee, apogee and period tolerances are 3 km, 5 km and 10 s, respectively.
 
 | Mission and recovery pass | Reference orbit, km | Reference period | Pre-retro / splashdown saves | Verified Space command, MET | First contact from scenario target / CI limit |
 |---|---:|---:|---|---:|---:|
-| Aurora 7, orbit 3 | 160.84 × 268.55 | 88 min 32 s | 10 / 11 | 04:33:12 | 66.3 / 75 km |
+| Aurora 7, orbit 3 | 160.84 × 268.55 | 88 min 32 s | 10 / 11 | 04:33:12 | 66.6 / 75 km |
 | Sigma 7, orbit 6 | 161.00 × 283.04 | 88 min 55 s | 12 / 13 | 08:51:21 | 45.4 / 50 km |
 | Faith 7, orbit 22 | 161.42 × 266.99 | 88 min 45 s | 14 / 15 | 33:59:09 | 33.3 / 50 km |
 
@@ -179,6 +179,42 @@ time. CI reads the panel at the checkpoint, requires a command within 60 s of
 the historical event, and checks the 30 s delay, five-second motor spacing,
 post-burn perigee below 60 km, both chutes, and the first ocean contact.
 The recovery limits in the table are simulator regression tolerances.
+
+The MA-7 countdown begins at 12:44:16 UTC. Press **P** at T−3 s. The nominal
+recovery regression retains its 75 km tolerance against the scenario target.
+
+**Carpenter reconstruction.** Select **Project Mercury → Reconstructions →
+Aurora 7 - Carpenter retrofire**. Start the pad sequence at 12:45:13.57 UTC.
+NASA used 12:45:16.00 UTC as range zero and recorded liftoff 0.57 s later.
+CI uses the scenario date and telemetry timestamps across reloads. The
+reconstruction uses the cutoff and post-separation speeds from NASA TN D-3814,
+Table XVII. It models the measured separation impulse with the existing three
+one-second posigrade motors. The historical CI report records the accepted
+flight state at tail-off, spacecraft separation, burnout of the posigrades,
+and immediately before the first retro motor fires. It reports both Orbiter
+mean-radius height and approximate WGS84 ellipsoid height for comparison with
+NASA's ground track. Figures 52 and 53 give plots at retrofire. Their values
+have lower precision than the tabulated insertion speeds.
+[NASA flight analysis](https://ntrs.nasa.gov/citations/19670008816)
+
+Command
+retrosequence at MET 04:32:36.5. The replay imposes the radar-reconstructed
+mean capsule attitude during motor firing and uses the reconstructed total
+impulse. It approximates the pilot's varying attitude during those seconds.
+Orbiter integrates the orbit, motor forces, entry, parachutes and contact.
+For the heat-shield phase between retropack jettison and drogue deployment,
+the reconstruction evaluates Orbiter's selected atmosphere at height above
+the local WGS84 ellipsoid. Its airfoil coefficients account for the density
+difference from the simulator's mean-radius Earth. The parachute and contact
+models use Orbiter's surface. This approximates the atmospheric altitude
+datum. The historical atmosphere and pilot inputs are only partially known.
+The local replay tripped the 0.05 g relay roughly 20 seconds before the
+archived event even though first contact met the recovery tolerance.
+CI compares the first ocean contact with 19°29′ N, 64°05′ W and enforces a
+50 km great-circle limit. The nominal scenario and its original recovery
+coordinate are recorded independently.
+[NASA mission record](https://www.nasa.gov/mission/mercury-atlas-7-aurora-7/) ·
+[MA-7 flight report](https://www.nasa.gov/wp-content/uploads/2026/01/ma07-tec.pdf)
 
 Aurora 7's scenario coordinate (19.45° N, 63.83° W) is near Carpenter's actual
 splashdown. NASA records that he landed about 400 km from the intended point.
