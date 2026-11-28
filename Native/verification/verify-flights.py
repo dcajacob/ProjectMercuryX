@@ -45,6 +45,54 @@ def insertion_inclination(case, state):
     return inclination
 
 
+def carpenter_states(case, ship, events):
+    """Last accepted sample at each UTC range time (before thrust at retrofire)."""
+    samples = {}
+    with (case/'evidence/flight-state.csv').open() as stream:
+        rows = (r for r in csv.DictReader(stream) if r['object'] == ship)
+        row = next(rows)
+        for event, time in events:
+            while carpenter_range_time(row['mjd']) <= time + 1e-6:
+                samples[event] = row
+                row = next(rows)
+            if event not in samples or time - carpenter_range_time(samples[event]['mjd']) > 1.01 / FLIGHT_HZ:
+                raise ValueError(f'{case}: missing {event} state at range {time}')
+    by_tick = {r['tick']: name for name, r in samples.items()}
+    states = {}
+    with (case/'evidence/ground-math.csv').open() as stream:
+        for ground in csv.DictReader(stream):
+            event = by_tick.get(ground['tick'])
+            if event is None:
+                continue
+            row = samples[event]
+            pos = [float(row['r' + axis]) for axis in 'xyz']
+            vel = [float(row['v' + axis]) for axis in 'xyz']
+            radius, speed = math.hypot(*pos), math.hypot(*vel)
+            radial = sum(x*y for x, y in zip(pos, vel)) / radius
+            # NASA table XVII uses geodetic latitude. Orbiter reports a
+            # geocentric angle. Use WGS84 for the comparison only.
+            latitude = float(ground['latitude'])
+            pxy, z = radius * math.cos(latitude), radius * math.sin(latitude)
+            eccentricity2 = 6.6943799901413165e-3
+            phi = latitude
+            for _ in range(4):
+                n = 6378137.0 / math.sqrt(1 - eccentricity2 * math.sin(phi)**2)
+                phi = math.atan2(z + n * eccentricity2 * math.sin(phi), pxy)
+            states[event] = dict(range_time_s=carpenter_range_time(row['mjd']),
+                                 geocentric_lat_deg=math.degrees(latitude),
+                                 wgs84_lat_deg=math.degrees(phi),
+                                 longitude_deg=math.degrees(float(ground['longitude'])),
+                                 altitude_mean_km=float(row['altitude_mean']) / 1000,
+                                 wgs84_height_km=(pxy / math.cos(phi) - n) / 1000,
+                                 inertial_speed_mps=speed,
+                                 radial_flight_path_deg=math.degrees(math.asin(radial / speed)))
+            if len(states) == len(events):
+                break
+    if len(states) != len(events):
+        raise ValueError(f'{case}: missing ground telemetry at historical events')
+    return states
+
+
 def first_orbit(case, reference):
     # With harmonics on, two-body osculating apsides at insertion are not
     # the altitudes the capsule reaches. Measure both from the linked coast.
@@ -230,6 +278,16 @@ for name,ship,phase in cases:
             result['command_offset_from_historical_s'] = sequence_met - MISSIONS[mission].historical_sequence_met
     else:assert 100000<float(last['altitude_mean'])<220000,name
     if mission == 'carpenter' and phase == 'insertion':
+        # Table XVII lists an instantaneous pre/post-posigrade pair. Compare
+        # terminal speeds on either side of the simulated one-second firing.
+        states = carpenter_states(case, ship, [('tail_off', 310.2), ('separation', 312.2),
+                                               ('after_posigrades', 313.25)])
+        result['trajectory_states'] = states
+        for event, reference_fps in [('tail_off', 25717), ('after_posigrades', 25738)]:
+            error = states[event]['inertial_speed_mps'] - reference_fps * 0.3048
+            states[event]['difference_from_table_xvii_mps'] = error
+            if abs(error) > 1.5:
+                result['result'] = 'failed'
         # Use the simulator date of each detached vessel's appearance. The
         # Mercury console's T+ labels use the spacecraft's own clock.
         events = {f'{ship} abort tower': ('tower_release', 152.2),
@@ -251,6 +309,8 @@ for name,ship,phase in cases:
             result['result'] = 'failed'
         result['ascent_chronology'] = chronology
     if mission == 'carpenter' and phase == 'recovery':
+        result['trajectory_states'] = carpenter_states(case, ship, [('before_first_retro', 16390.3),
+                                                                   ('nasa_entry_relay_epoch', 17084.0)])
         with (case/'evidence/lifetime-events.csv').open() as stream:
             ignition_times = [carpenter_range_time(row['mjd']) for row in csv.DictReader(stream)
                               if row['phase'] == 'module.library.open' and row['object'].startswith(f'{ship} Retrocover ')]

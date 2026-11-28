@@ -676,7 +676,25 @@ void ProjectMercury::ApplyCarpenterRetroAttitude(double simt)
 
 void ProjectMercury::clbkPreStep(double simt, double simdt, double mjd)
 {
-	if (reconstructCarpenter) ApplyCarpenterRetroAttitude(simt);
+	if (reconstructCarpenter)
+	{
+		ApplyCarpenterRetroAttitude(simt);
+		if (CapsuleVersion == AURORA7 && VesselStatus == LAUNCHCORETOWERSEP &&
+			autoPilot && AutopilotStatus == AUTOLAUNCH && !missileMission)
+		{
+			// Table XVII specifies the speed after tail-off. Observe the accepted
+			// state before integration so there is no extra powered frame.
+			VECTOR3 velocity;
+			GetRelativeVel(GetSurfaceRef(), velocity);
+			if (length(velocity) >= 25717.0 * 0.3048)
+			{
+				SetThrusterGroupLevel(THGROUP_MAIN, 0.0);
+				AutopilotStatus = POSIGRADEDAMP;
+				boosterShutdownTime = simt;
+				oapiWriteLogV("MA-7 reconstructed SECO T+%.2f", simt - launchTime);
+			}
+		}
+	}
 	if (simt - launchTime > 2.0 && simdt > timeStepLimit && !rollProgram && autoPilot && (VesselStatus == LAUNCH || VesselStatus == LAUNCHCORE || VesselStatus == TOWERSEP || VesselStatus == LAUNCHCORETOWERSEP))
 	{
 		AimEulerAngle(eulerPitch, eulerYaw); // SetGlobalOrientation must be in prestep ?
@@ -3367,7 +3385,8 @@ void ProjectMercury::AtlasAutopilot(double simt, double simdt)
 	GetForceVector(Force);
 	integratedSpeed += simdt * length(Force) / GetMass();
 
-	if (targetOrbitalVelocity + speedError < currentOrbitalVelocity + 3.4) // posigrades give additional 3.4 m/s dV
+	if (!(reconstructCarpenter && CapsuleVersion == AURORA7 && VesselStatus == LAUNCHCORETOWERSEP && !missileMission) &&
+		targetOrbitalVelocity + speedError < currentOrbitalVelocity + 3.4)
 	{
 		char cbuf[256];
 		SetThrusterGroupLevel(THGROUP_MAIN, 0.0);

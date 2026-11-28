@@ -812,19 +812,33 @@ void ProjectMercury::CreatePosigradeRockets(void)
 
 	SURFHANDLE tex = oapiRegisterExhaustTexture("Exhaust2"); // See When We Left Earth first part at 2:50 for reference
 
+	double thrust = POSIGRADE_THRUST;
+	double isp = POSIGRADE_ISP;
+#ifdef MERCURY_ATLAS_RECONSTRUCTION
+	if (reconstructCarpenter && CapsuleVersion == AURORA7 && !conceptManouverUnit)
+	{
+		// TN D-3814, table XVII: +21 ft/s from the three separation motors.
+		// The spacecraft weighs 2974.56 lb in orbit after the one-second burn.
+		const double orbitalMass = 2974.56 * 0.45359237;
+		const double axialFraction = 0.95 / length(_V(0.329, 0.119, 0.95));
+		isp = (21.0 * 0.3048) / (axialFraction * log1p(3.0 * POSIGRADE_MASS_FUEL / orbitalMass));
+		thrust = isp * POSIGRADE_MASS_FUEL;
+	}
+#endif
+
 	m_exhaust_pos = _V(-0.305, MERCURY_OFS_RETRO.y - 0.11, MERCURY_OFS_RETRO.z - 0.2);
 	m_exhaust_ref = _V(0.329, 0.119, 0.95);
-	thruster_posigrade[0] = CreateThruster(m_exhaust_pos, m_exhaust_ref, POSIGRADE_THRUST, posigrade_propellant[0], POSIGRADE_ISP);
+	thruster_posigrade[0] = CreateThruster(m_exhaust_pos, m_exhaust_ref, thrust, posigrade_propellant[0], isp);
 	AddExhaust(thruster_posigrade[0], 0.5, 0.02, tex);
 
 	m_exhaust_pos = _V(0.065, MERCURY_OFS_RETRO.y + 0.285, MERCURY_OFS_RETRO.z - 0.2);
 	m_exhaust_ref = _V(-0.075, -0.337, 0.95);
-	thruster_posigrade[1] = CreateThruster(m_exhaust_pos, m_exhaust_ref, POSIGRADE_THRUST, posigrade_propellant[1], POSIGRADE_ISP);
+	thruster_posigrade[1] = CreateThruster(m_exhaust_pos, m_exhaust_ref, thrust, posigrade_propellant[1], isp);
 	AddExhaust(thruster_posigrade[1], 0.5, 0.02, tex);
 
 	m_exhaust_pos = _V(.214, MERCURY_OFS_RETRO.y - 0.23, MERCURY_OFS_RETRO.z - .2);
 	m_exhaust_ref = _V(-0.235, 0.253, 0.95);
-	thruster_posigrade[2] = CreateThruster(m_exhaust_pos, m_exhaust_ref, POSIGRADE_THRUST, posigrade_propellant[2], POSIGRADE_ISP);
+	thruster_posigrade[2] = CreateThruster(m_exhaust_pos, m_exhaust_ref, thrust, posigrade_propellant[2], isp);
 	AddExhaust(thruster_posigrade[2], 0.5, 0.02, tex);
 
 	SetThrusterLevel(thruster_posigrade[0], 1.0);
@@ -1128,8 +1142,12 @@ void ProjectMercury::CreateAirfoils(void)
 {
 	ClearAirfoilDefinitions(); // delete previous airfoils
 	SetRotDrag(MERCURY_ROT_DRAG);
-	CreateAirfoil3(LIFT_VERTICAL, _V(0, 0, 0.7239), vlift, NULL, 1.89, 1.89 * 1.89 * PI / 4.0, 1.0); // 0.7239 m from CG to CP (19670022650 page 36)
-	CreateAirfoil3(LIFT_HORIZONTAL, _V(0, 0, 0.7239), hlift, NULL, 1.89, 1.89 * 1.89 * PI / 4.0, 1.0); // spherical symmetric
+	void *atmosphereContext = nullptr;
+#ifdef MERCURY_ATLAS_RECONSTRUCTION
+	if (reconstructCarpenter && CapsuleVersion == AURORA7 && VesselStatus == REENTRY) atmosphereContext = this;
+#endif
+	CreateAirfoil3(LIFT_VERTICAL, _V(0, 0, 0.7239), vlift, atmosphereContext, 1.89, 1.89 * 1.89 * PI / 4.0, 1.0); // 0.7239 m from CG to CP (19670022650 page 36)
+	CreateAirfoil3(LIFT_HORIZONTAL, _V(0, 0, 0.7239), hlift, atmosphereContext, 1.89, 1.89 * 1.89 * PI / 4.0, 1.0); // spherical symmetric
 }
 
 void ProjectMercury::CreateAirfoilsEscape(void)
@@ -4070,6 +4088,31 @@ inline void ProjectMercury::AnimatePeriscope(double simt, double simdt)
 	}
 }
 
+#ifdef MERCURY_ATLAS_RECONSTRUCTION
+// The atmosphere tables take height above sea level. The native Earth sphere
+// reports radius minus mean radius, which differs along the MA-7 ground track.
+void ProjectMercury::ApplyCarpenterAtmosphere(double *cl, double *cm, double *cd) const
+{
+	if (drogueDeployed) return;
+	double longitude, latitude, radius;
+	GetEquPos(longitude, latitude, radius);
+	constexpr double equatorial = 6378137.0;
+	constexpr double polar = 6356752.314245;
+	const double localRadius = 1.0 / hypot(cos(latitude) / equatorial, sin(latitude) / polar);
+	const double density = GetAtmDensity();
+	if (density <= 0.0) return;
+	ATMPARAM atmosphere{};
+	oapiGetPlanetAtmParams(GetSurfaceRef(), max(0.0, radius - localRadius), longitude, latitude, &atmosphere);
+	if (atmosphere.rho > 0.0)
+	{
+		const double ratio = atmosphere.rho / density;
+		*cl *= ratio;
+		*cm *= ratio;
+		*cd *= ratio;
+	}
+}
+#endif
+
 void ProjectMercury::vlift(VESSEL* v, double aoa, double M, double Re, void* context, double* cl, double* cm, double* cd)
 {
 	// This works ish. For later improvement with matrix taking mach into consideration, see https://www.orbiter-forum.com/showthread.php?t=40607
@@ -4137,6 +4180,9 @@ void ProjectMercury::vlift(VESSEL* v, double aoa, double M, double Re, void* con
 
 	*cd *= scaleFunction2; // this _SHOULD_ give a close to correct cd for any aoa and mach
 	*cd *= 0.5;
+#ifdef MERCURY_ATLAS_RECONSTRUCTION
+	if (context) static_cast<ProjectMercury*>(context)->ApplyCarpenterAtmosphere(cl, cm, cd);
+#endif
 }
 
 void ProjectMercury::hlift(VESSEL* v, double aoa, double M, double Re, void* context, double* cl, double* cm, double* cd)
@@ -4202,6 +4248,9 @@ void ProjectMercury::hlift(VESSEL* v, double aoa, double M, double Re, void* con
 
 	*cd *= scaleFunction2; // this _SHOULD_ give a close to correct cd for any aoa and mach.
 	*cd *= 0.5;
+#ifdef MERCURY_ATLAS_RECONSTRUCTION
+	if (context) static_cast<ProjectMercury*>(context)->ApplyCarpenterAtmosphere(cl, cm, cd);
+#endif
 }
 
 void ProjectMercury::vliftEscape(VESSEL* v, double aoa, double M, double Re, void* context, double* cl, double* cm, double* cd)

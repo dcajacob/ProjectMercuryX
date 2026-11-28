@@ -772,6 +772,7 @@ private:
 	bool reconstructCarpenter = false;
 	double CapsuleSeparationTime() const;
 	void ApplyCarpenterRetroAttitude(double simt);
+	void ApplyCarpenterAtmosphere(double *cl, double *cm, double *cd) const;
 	double pitchOffset = 0.0, yawOffset = 0.0, rollOffset = 0.0; // radians
 	double speedError = 0.0; // m/s
 	double chuteDestroyFactor = 0.0; // 1 is completely mess, 0 is no problem

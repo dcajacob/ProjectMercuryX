@@ -186,11 +186,30 @@ recovery regression retains its 75 km tolerance against the scenario target.
 **Carpenter reconstruction.** Select **Project Mercury → Reconstructions →
 Aurora 7 - Carpenter retrofire**. Start the pad sequence at 12:45:13.57 UTC.
 NASA used 12:45:16.00 UTC as range zero and recorded liftoff 0.57 s later.
-CI uses the scenario date and telemetry timestamps across reloads. Command
+CI uses the scenario date and telemetry timestamps across reloads. The
+reconstruction uses the cutoff and post-separation speeds from NASA TN D-3814,
+Table XVII. It models the measured separation impulse with the existing three
+one-second posigrade motors. The historical CI report records the accepted
+flight state at tail-off, spacecraft separation, burnout of the posigrades,
+and immediately before the first retro motor fires. It reports both Orbiter
+mean-radius height and approximate WGS84 ellipsoid height for comparison with
+NASA's ground track. Figures 52 and 53 give plots at retrofire. Their values
+have lower precision than the tabulated insertion speeds.
+[NASA flight analysis](https://ntrs.nasa.gov/citations/19670008816)
+
+Command
 retrosequence at MET 04:32:36.5. The replay imposes the radar-reconstructed
 mean capsule attitude during motor firing and uses the reconstructed total
 impulse. It approximates the pilot's varying attitude during those seconds.
 Orbiter integrates the orbit, motor forces, entry, parachutes and contact.
+For the heat-shield phase between retropack jettison and drogue deployment,
+the reconstruction evaluates Orbiter's selected atmosphere at height above
+the local WGS84 ellipsoid. Its airfoil coefficients account for the density
+difference from the simulator's mean-radius Earth. The parachute and contact
+models use Orbiter's surface. This approximates the atmospheric altitude
+datum. The historical atmosphere and pilot inputs are only partially known.
+The local replay tripped the 0.05 g relay roughly 20 seconds before the
+archived event even though first contact met the recovery tolerance.
 CI compares the first ocean contact with 19°29′ N, 64°05′ W and enforces a
 50 km great-circle limit. The nominal scenario and its original recovery
 coordinate are recorded independently.
